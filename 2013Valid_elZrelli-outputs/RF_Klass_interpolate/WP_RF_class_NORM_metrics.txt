@@ -1,0 +1,18 @@
+Model: WP_RF_class_NORM
+----------------------------------
+Model type: Classification
+OOB Error Rate: 0.154
+OOB Accuracy:   0.846
+Number of trees: 500
+Mtry: 2
+Min node size: 1
+Splitrule: gini
+
+Confusion Matrix (OOB):
+    predicted
+true     1     2     3     4     5
+   1   718   150     0     1     0
+   2   108  4483  1296   200    19
+   3     0   996 10905  1344   142
+   4     0   150   934 21910  1042
+   5     2    23   110  1181  4286

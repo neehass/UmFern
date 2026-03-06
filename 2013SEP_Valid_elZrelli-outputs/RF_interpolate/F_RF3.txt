@@ -1,0 +1,9 @@
+Model: F_RF3
+----------------------------------
+OOB MSE:  0.679965
+OOB RMSE: 0.8246
+OOB R2:   0.739755
+Number of trees: 500
+Mtry: 2
+Min node size: 5
+
