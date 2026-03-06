@@ -208,6 +208,11 @@ list_ALLyears_aligned <- lapply(list_ALLyears, function(r) {
 #   stop("Layeranzahl stimmt nicht mit Bändern * Jahren überein!")
 # }
 
+# gulf_shp_pj <- project(gulf_shp, crs(rasterALL))
+# rasterALL_masked <- mask(rasterALL, gulf_shp_pj)
+# names(rasterALL_masked)
+# writeRaster(rasterALL_masked, file.path(data_pif, "MASKED_LAND_all_raster1985-2025_masked_smallest.tif"), overwrite=TRUE)
+
 # layer_names <- unlist(lapply(unique_years, function(y) {
 #   paste0(y, "_", bands)
 # }))
@@ -215,18 +220,14 @@ list_ALLyears_aligned <- lapply(list_ALLyears, function(r) {
 # names(rasterALL) 
 # writeRaster(rasterALL, file.path(data_pif, "all_raster1985-2025_masked_smallest.tif"), overwrite=TRUE)
 
-# gulf_shp_pj <- project(gulf_shp, crs(rasterALL))
-# rasterALL_masked <- mask(rasterALL, gulf_shp_pj)
-# writeRaster(rasterALL_masked, file.path(data_pif, "MASKED_LAND_all_raster1985-2025_masked_smallest.tif"), overwrite=TRUE)
-
 rasterALL <- rast(file.path(data_pif, "all_raster1985-2025_masked_smallest.tif"))
 rasterALL_masked <- rast(file.path(data_pif, "MASKED_LAND_all_raster1985-2025_masked_smallest.tif"))
 
-# Standardabweichung
+# Standardabweichung über alle bänder 
 sd_raster <- app(rasterALL_masked, sd, na.rm = TRUE)
 col_fun <- colorRampPalette(c("white", "red"))
 png(file.path(output, "SD_smallestTimeseries1985-2025.png"), height = 800, width = 800)
-plot(sd_raster, col = col_fun(100000), plg = list(title = "SD 1985-2025"))
+plot(sd_raster[[3]], col = col_fun(100000), plg = list(title = "SD 1985-2025"))
 dev.off()
 
 cv <- app(rasterALL_masked, function(x){
@@ -256,39 +257,56 @@ writeRaster(pP_mask_sd, file.path(data_pif, "permanentPixel_sd.tif"), overwrite=
 writeRaster(pP_mask_cv, file.path(data_pif, "permanentPixel_CV.tif"), overwrite=TRUE)
 writeRaster(pP_mask_sdCV, file.path(data_pif, "permanentPixel_sd_CV.tif"), overwrite=TRUE)
 
+# sd und cv pro band
+bands_unique <- unique(names(rasterALL_masked))
+sd_per_band <- list()
+cv_per_band <- list()
+pP_mask_sdCV_perband <- list()
+
+for(b in bands_unique){
+  # alle Bänder mit diesem Namen auswählen
+  sel <- grep(paste0("^", b, "$"), names(rasterALL_masked))
+  band_stack <- rasterALL_masked[[sel]]
+  
+  # SD pro Pixel über die Jahre
+  sd_per_band[[b]] <- app(band_stack, fun = sd, na.rm = TRUE)
+ cv_per_band[[b]] <- app(band_stack, fun = function(x){
+    sd(x, na.rm = TRUE) / mean(x, na.rm = TRUE)})
+}
+
+for(b in bands_unique){
+  
+  # SD und CV für dieses Band
+  sd_r <- sd_per_band[[b]]
+  cv_r <- cv_per_band[[b]]
+  
+  # Schwellenwerte: 10% der stabilsten Pixel
+  vals_sd <- values(sd_r)
+  threshold_sd <- quantile(vals_sd, 0.10, na.rm = TRUE)
+  
+  vals_cv <- values(cv_r)
+  threshold_cv <- quantile(vals_cv, 0.10, na.rm = TRUE)
+  
+  # Masken: SD und CV kleiner als Schwellenwert
+  mask_sd <- sd_r <= threshold_sd
+  mask_cv <- cv_r <= threshold_cv
+  
+  # kombinierte PIF-Maske
+  pP_mask_sdCV_perband[[b]] <- mask_sd & mask_cv
+  
+  # Optional: plotten
+  plot(pP_mask_sdCV_perband[[b]], main = paste("10% stabilste Pixel:", b))
+  writeRaster(pP_mask_sdCV_perband[[b]], file.path(data_pif, paste0(b, "_permanentPixel_sd_CV.tif")), overwrite=TRUE)
+}
+
 # -------------------------------------------
 # normiere Alle szenen anhand 2013 -------------------------
 # -------------------------------------------
 ref_scene <- list_ALLyears_aligned[[which(unique_years == "2013")]] # 2013
 
-# permanent pixel maskieren 
-ref_mask <- mask(ref_scene, pP_mask_sdCV, maskvalues = 0)
-ref_mask <- mask(ref_mask, gulf_shp_pj)
-plot(ref_mask)
-
-tar_mask <- vector("list", length(list_ALLyears_aligned))
-
-for(i in seq_along(list_ALLyears_aligned)){
-
-  x <- list_ALLyears_aligned[[i]]
-
-  x_masked <- mask(x, pP_mask_sdCV, maskvalues = 0)
-
-  x_masked <- mask(x_masked, gulf_shp_pj)
-
-
-  tar_mask[[i]] <- x_masked
-
-  # Speicher freigeben
-  rm(mask_proj, gulf_pj, x_masked)
-  gc()
-}
-
-plot(tar_mask[[1]])
-
 # normieren ---------
 library(lmodel2)
-norm_ALLyears_list <- vector("list", length(list_ALLyears_aligned))
+norm_ALLyears_list_band <- vector("list", length(list_ALLyears_aligned))
 bandnames <- names(list_ALLyears_aligned[[1]])
 
 for(i in seq_along(list_ALLyears_aligned)) {
@@ -296,18 +314,19 @@ for(i in seq_along(list_ALLyears_aligned)) {
   scene <- list_ALLyears_aligned[[i]]
 
  # Maskierete Szene mit PIF
-  scene_masked <- tar_mask[[i]]
  
  scene_norm_bands <- list()
   for(b in seq_along(bandnames)) {
 
     # Einzelnes Band extrahieren
-    ref_band <- ref_mask[[b]]
+    ref_mask <- mask(ref_scene[[b]], pP_mask_sdCV_perband[[b]], maskvalues = 0)
+    ref_mask <- mask(ref_mask, gulf_shp_pj)
+
     tar_band <- scene[[b]]
 
     # Gemeinsame PIF-Pixel für Regression
-    common_mask <- !is.na(values(ref_band)) & !is.na(values(tar_band))
-    ref_vals <- values(ref_band)[common_mask]
+    common_mask <- !is.na(values(ref_mask)) & !is.na(values(tar_band))
+    ref_vals <- values(ref_mask)[common_mask]
     tar_vals <- values(tar_band)[common_mask]
 
       #   # lineare Regression (nur PIF-Pixel)
@@ -332,25 +351,144 @@ for(i in seq_along(list_ALLyears_aligned)) {
   names(scene_norm) <- bandnames
 
   # speichern
-  norm_ALLyears_list[[i]] <- scene_norm
+  writeRaster(scene_norm, file.path(data_pif, paste0("NORMIERT2013_proBand_",unique_years[i],"_permanentPixel_sd_CV.tif")), overwrite=TRUE)
+  norm_ALLyears_list_band[[i]] <- scene_norm
 
   # Speicher freigeben
   rm(scene_masked, scene_norm_bands)
   gc()
 }
 
-plot(norm_ALLyears_list[[1]])
-norm_dir <- file.path(output, "normiert_BAND_sd_CV")
+norm_files <- list.files(data_pif, pattern = "^NORMIERT2013_proBand")
+norm_ALLyears_list_band <- lapply(norm_files, function(x){rast(file.path(data_pif, x))})
+
+# windows()
+plot(norm_ALLyears_list_band[[1]])
+norm_dir <- file.path(output, "normiert_proBAND_sd_CV")
 dir.create(norm_dir)
 for(b in seq_along(bandnames)) {
-    png(file.path(norm_dir, paste0(bandnames[b],"_NORMIERT2013_pP_smallestTimeseries1985-2025.png")), height = 800, width = 800)
+    png(file.path(norm_dir, paste0(bandnames[b],"_NORMIERT2013_proBand_pP_smallestTimeseries1985-2025.png")), height = 800, width = 800)
     par(mfrow=c(6,4))
     for(y in 1:length(unique_years)){
-    plot(norm_ALLyears_list[[y]][[b]],
+    plot(norm_ALLyears_list_band[[y]][[b]],
         main = paste(unique_years[y] , "-", bandnames[b]))
     }
     dev.off()
 }
+
+# maskiere water --------------
+gulf_shp_pj <- project(gulf_shp, crs(norm_ALLyears_list_band[[1]]))
+norm_ALLyears_list_band_water <- lapply(norm_ALLyears_list_band, function(x){
+    masked <- mask(x, gulf_shp_pj, inverse = TRUE)
+    names(masked) <- names(x)
+    return(masked)})
+plot(norm_ALLyears_list_band_water[[1]])
+
+# save 
+for(i in seq_along(norm_ALLyears_list_band_water)){
+  x <- norm_ALLyears_list_band_water[[i]]
+  writeRaster(
+    x,
+    file.path(data_pif, paste0("WATER_NORMIERT2013_proBand_", unique_years[i], "_permanentPixel_sd_CV.tif")),
+    overwrite = TRUE
+  )
+}
+# # -------------------------------------------
+# # normiere Alle szenen anhand 2013 -------------------------
+# # -------------------------------------------
+# ref_scene <- list_ALLyears_aligned[[which(unique_years == "2013")]] # 2013
+
+# # permanent pixel maskieren 
+# ref_mask <- mask(ref_scene, pP_mask_sdCV, maskvalues = 0)
+# ref_mask <- mask(ref_mask, gulf_shp_pj)
+# plot(ref_mask)
+
+# tar_mask <- vector("list", length(list_ALLyears_aligned))
+
+# for(i in seq_along(list_ALLyears_aligned)){
+
+#   x <- list_ALLyears_aligned[[i]]
+
+#   x_masked <- mask(x, pP_mask_sdCV, maskvalues = 0)
+
+#   x_masked <- mask(x_masked, gulf_shp_pj)
+
+
+#   tar_mask[[i]] <- x_masked
+
+#   # Speicher freigeben
+#   rm(mask_proj, gulf_pj, x_masked)
+#   gc()
+# }
+
+# plot(tar_mask[[1]])
+
+# # normieren ---------
+# library(lmodel2)
+# norm_ALLyears_list <- vector("list", length(list_ALLyears_aligned))
+# bandnames <- names(list_ALLyears_aligned[[1]])
+
+# for(i in seq_along(list_ALLyears_aligned)) {
+
+#   scene <- list_ALLyears_aligned[[i]]
+
+#  # Maskierete Szene mit PIF
+#   scene_masked <- tar_mask[[i]]
+ 
+#  scene_norm_bands <- list()
+#   for(b in seq_along(bandnames)) {
+
+#     # Einzelnes Band extrahieren
+#     ref_band <- ref_mask[[b]]
+#     tar_band <- scene[[b]]
+
+#     # Gemeinsame PIF-Pixel für Regression
+#     common_mask <- !is.na(values(ref_band)) & !is.na(values(tar_band))
+#     ref_vals <- values(ref_band)[common_mask]
+#     tar_vals <- values(tar_band)[common_mask]
+
+#       #   # lineare Regression (nur PIF-Pixel)
+#     #   model <- lm(ref_vals ~ tar_vals)
+#     #   a <- coef(model)[1]
+#     #   b <- coef(model)[2]
+
+#     # Major-Axis Regression wie bei https://search.r-project.org/CRAN/refmans/landsat/html/PIF.html
+#     model <- lmodel2(ref_vals ~ tar_vals) # zeigt bloß hinweise
+#     a <- model$regression.results[2, "Intercept"]
+#     b_coef <- model$regression.results[2, "Slope"]
+
+#     # Normalisierung des Bands
+#     band_norm <- tar_band * b_coef + a
+
+#     # speichern
+#     scene_norm_bands[[b]] <- band_norm
+#   }
+
+#   # Normalisierte Bänder wieder zu einem Rasterstack zusammenfügen
+#   scene_norm <- rast(scene_norm_bands)
+#   names(scene_norm) <- bandnames
+
+#   # speichern
+#   writeRaster(scene_norm, file.path(data_pif, paste0("NORMIERT2013_",unique_years[i],"_permanentPixel_sd_CV.tif")), overwrite=TRUE)
+#   norm_ALLyears_list[[i]] <- scene_norm
+
+#   # Speicher freigeben
+#   rm(scene_masked, scene_norm_bands)
+#   gc()
+# }
+
+# plot(norm_ALLyears_list[[1]])
+# norm_dir <- file.path(output, "normiert_sd_CV")
+# dir.create(norm_dir)
+# for(b in seq_along(bandnames)) {
+#     png(file.path(norm_dir, paste0(bandnames[b],"_NORMIERT2013_pP_smallestTimeseries1985-2025.png")), height = 800, width = 800)
+#     par(mfrow=c(6,4))
+#     for(y in 1:length(unique_years)){
+#     plot(norm_ALLyears_list[[y]][[b]],
+#         main = paste(unique_years[y] , "-", bandnames[b]))
+#     }
+#     dev.off()
+# }
 
 # # PIF Pseudo-Invariant Features # https://search.r-project.org/CRAN/refmans/landsat/html/PIF.html
 # library(landsat)

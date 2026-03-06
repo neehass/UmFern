@@ -149,6 +149,67 @@ func_mask_cloud_EXTENT <- function(raster, data_dir, sampleloc_extent, gabes_haf
     return(raster_masked)
 }
 
+library(terra)
+library(landsat)
+library(lmodel2)
+
+# Funktion: PIF-basierte MA-Normalisierung
+normalize_landsat_time_series <- function(raster_list, ref_index = 1, level = 0.99) {
+  
+  ref <- raster_list[[ref_index]]
+  
+  # PIF berechnen
+  ref_pif <- PIF(ref[["Red"]], ref[["NIR"]], ref[["SWIR2"]], level = level)
+  
+  # PIF-Maske in SpatRaster umwandeln
+  pif_raster <- ref[[1]]
+  values(pif_raster) <- as.numeric(ref_pif)  # 1 = stabil, NA = instabil
+  
+  # Referenzmaskierte Raster
+  ref_mask <- ref
+  for(b in seq_along(names(ref))) {
+    ref_mask[[b]] <- mask(ref[[b]], pif_raster, maskvalues = 0)
+  }
+  
+  norm_list <- vector("list", length(raster_list))
+  
+  for(i in seq_along(raster_list)) {
+    scene <- raster_list[[i]]
+    
+    # PIF-Maske auf Szene projizieren
+    pif_scene <- project(pif_raster, scene)
+    scene_masked <- mask(scene, pif_scene, maskvalues = 0)
+    
+    scene_norm_bands <- list()
+    
+    for(b in seq_along(names(scene))) {
+      ref_band <- ref_mask[[b]]
+      tar_band <- scene_masked[[b]]
+      
+      common_mask <- !is.na(values(ref_band)) & !is.na(values(tar_band))
+      ref_vals <- values(ref_band)[common_mask]
+      tar_vals <- values(tar_band)[common_mask]
+      
+      model <- lmodel2(ref_vals ~ tar_vals)
+      a <- model$regression.results[2, "Intercept"]
+      b_coef <- model$regression.results[2, "Slope"]
+      
+      band_norm <- tar_band * b_coef + a
+      scene_norm_bands[[b]] <- band_norm
+    }
+    
+    scene_norm <- rast(scene_norm_bands)
+    names(scene_norm) <- names(scene)
+    
+    norm_list[[i]] <- scene_norm
+    
+    rm(scene_masked, scene_norm_bands, pif_scene)
+    gc()
+  }
+  
+  return(norm_list)
+}
+
 crop_func <- function(raster, ind_loc_sf){
 
     raster_list <- list()
