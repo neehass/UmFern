@@ -16,15 +16,16 @@ getwd()
 setwd("./Phosphate")
 source('./R-scripts/hel-func.R', chdir = TRUE)
 
-output <- "./R-scripts/2013Valid_elZrelli-outputs"
+output <- "./R-scripts/2013NORM_Valid_elZrelli-outputs"
 dir.create(output)
 
 data_elZrelli_shp <- "./elZrelli2018_shp"
 data_elZrelli <- "./elZrelli2018"
 
 data_dir_valid <- "./landsat_daten-1985_2025"
-data_dir_valid_masekd <- "./landsat_daten-1985_2025-masked"
-dir.create(data_dir_valid_masekd)
+data_pif <- "./landsat-SEPTEMBER_PIF"
+
+data_dir_valid_masekd <- "./landsat2013-masked"
 
 # VAlidation Chla Reana
 data_CHla <- "./NOAAMSL12_chla/chlora/monthly/WW00"
@@ -57,11 +58,11 @@ gulf_shp <- tunisia_shp[(tunisia_shp$name == "Gabès") | (tunisia_shp$name == "S
 # ---------------------------------------------------------
 # load samplelocation data ------------------
 # ---------------------------------------------------------
-sampleloc_extent <- vect(file.path(data_elZrelli_shp, "elZrelli2018_sampleloc_EXTENT.shp"))
-sampleloc_extent <- erase(sampleloc_extent, gulf_shp)
+# sampleloc_extent <- vect(file.path(data_elZrelli_shp, "elZrelli2018_sampleloc_EXTENT.shp"))
+# sampleloc_extent <- erase(sampleloc_extent, gulf_shp)
 
-sampleloc_extent2 <- vect(file.path(data_elZrelli_shp, "elZrelli2018_sampleloc_EXTENT2.shp"))
-sampleloc_extent2 <- erase(sampleloc_extent2, gulf_shp)
+# sampleloc_extent2 <- vect(file.path(data_elZrelli_shp, "elZrelli2018_sampleloc_EXTENT2.shp"))
+# sampleloc_extent2 <- erase(sampleloc_extent2, gulf_shp)
 sampleLoc_points <- vect(file.path(data_elZrelli_shp, "elZrelli2018_sampleloc2.shp"))
 
 # plot industrie loc and sample locs
@@ -126,20 +127,28 @@ waterPolIndex <-  read.csv(file.path(data_elZrelli, "elZrelli2018_waterPollution
 # # # ---------------------------------------------------------
 # # # crop sample locations ------------------
 # # # ---------------------------------------------------------
-# # crop sample loc extent -----
 
+# # load normierte scene 
+norm_files <- list.files(data_pif, pattern = "^WATER_NORMIERT2013_proBand_")
+parts <- strsplit(norm_files, "_")
+years <- sapply(parts, `[`, 4)
+idxyear2023 <- which(years == "2013")
+
+valid_SEP_Extent <- rast(file.path(data_pif, norm_files[15]))
+
+# # crop sample loc extent -----
 # sampleloc_points_pj <- project(sampleLoc_points, crs(valid_SEP_Extent))
 
 # buffer <- buffer(sampleloc_points_pj, width = 90) # meter
 # valid_SEP_points <- mask(valid_SEP_Extent, buffer)
 # valid_SEP_points <- crop(valid_SEP_points, valid_SEP_Extent)
-# plot(valid_SEP_points$CoastalAerosol)
+# plot(valid_SEP_points$Blue)
 
-# writeRaster(valid_SEP_points, file.path(data_dir_valid_masekd,"POINTS_valid_sampleLoc_SEP2013.tif") , overwrite = TRUE)
+# writeRaster(valid_SEP_points, file.path(data_pif,"NORM13_perBand_POINTS_valid_sampleLoc_SEP2013.tif") , overwrite = TRUE)
 
 # load 
-valid_SEP_Extent <- rast(file.path(data_dir_valid_masekd,"EXTENT_valid_sampleLoc_SEP2013.tif"))
-valid_SEP_points <- rast(file.path(data_dir_valid_masekd,"POINTS_valid_sampleLoc_SEP2013.tif"))
+# valid_SEP_Extent <- rast(file.path(data_dir_valid_masekd,"EXTENT_valid_sampleLoc_SEP2013.tif"))
+valid_SEP_points <- rast(file.path(data_pif,"NORM13_perBand_POINTS_valid_sampleLoc_SEP2013.tif"))
 
 sampleloc_extent_pj <- project(sampleloc_extent, crs(valid_SEP_Extent))
 sampleloc_points_pj <- project(sampleLoc_points, crs(valid_SEP_Extent))
@@ -147,7 +156,7 @@ sampleloc_points_pj <- project(sampleLoc_points, crs(valid_SEP_Extent))
 indloc_pj <- project(vect(matrix(ind_loc, ncol=2), crs="EPSG:4326"), crs(valid_SEP_Extent))
 gulf_shp_pj <- project(gulf_shp, crs(valid_SEP_Extent))
 
-# # plot 
+# plot 
 # png(file.path(output, "Extent.png"), height = 1000, width = 1000)
 # plot(valid_SEP_Extent$SWIR1)
 # points(indloc_pj, col = "red")
@@ -197,9 +206,9 @@ gabesLON <- ind_loc[[1]]
 colnames(valid_SEP_points_VALUES)
 values_long <- valid_SEP_points_VALUES %>%
     #   select(Longitude, Green, Red, SWIR1) %>%
-  select(Longitude, CoastalAerosol, Blue, Green, Red, SWIR1, SWIR2, NIR) %>%
+  select(Longitude, Blue, Green, Red, SWIR1, SWIR2, NIR) %>%
   pivot_longer(# cols = c(Green, Red, SWIR1),
-    cols = c(CoastalAerosol, Blue, Green, Red, SWIR1, SWIR2, NIR),
+    cols = c( Blue, Green, Red, SWIR1, SWIR2, NIR),
                names_to = "Band",
                values_to = "Value")
 
@@ -209,7 +218,7 @@ scale_factor <- max(values_long$Value, na.rm = TRUE) /
 
 waterPolIndex <- waterPolIndex %>%
   mutate(WPi_scaled = WPi * scale_factor)
-
+# windows()
 p_WPI_GR <- ggplot(values_long, aes(Longitude, Value, colour = Band)) +
   geom_point() +
   geom_line() +
@@ -220,7 +229,7 @@ p_WPI_GR <- ggplot(values_long, aes(Longitude, Value, colour = Band)) +
                                      Red = "red", 
                                      SWIR1 = "darkorange", 
                                      SWIR2 = "orange", NIR = "magenta",
-                                     Blue = "blue", CoastalAerosol = "darkblue")) + 
+                                     Blue = "blue")) + 
     # Water Pollution Index
   geom_point(data = waterPolIndex,
              aes(x = Longitude, y = WPi_scaled),
@@ -258,26 +267,29 @@ cor_Green  <- cor(df_corr$WPi, df_corr$Green, use = "complete.obs")
 R2_Green   <- cor_Green^2
 cor_Red  <- cor(df_corr$WPi, df_corr$Red, use = "complete.obs")
 R2_Red   <- cor_Red^2
-cor_Sw  <- cor(df_corr$WPi, df_corr$SWIR1, use = "complete.obs")
-R2_SW  <- cor_Sw^2
 cor_nir  <- cor(df_corr$WPi, df_corr$NIR, use = "complete.obs")
 R2_nir  <- cor_nir^2
+cor_Sw2  <- cor(df_corr$WPi, df_corr$SWIR2, use = "complete.obs")
+R2_SW2  <- cor_Sw2^2
 
 label_text <- paste0(
   "<span style='color:darkgreen;'>Green: R = ", round(cor_Green,2),
   " | R² = ", round(R2_Green,2), "</span><br>",
   "<span style='color:red;'>Red: R = ", round(cor_Red,2),
   " | R² = ", round(R2_Red,2),"</span><br>",
+     "<span style='color:magenta;'>NIR: R = ", round(cor_nir,2),
+  " | R² = ", round(R2_nir,2),
+  "</span><br>",
    "<span style='color:darkorange;'>SWIR1: R = ", round(cor_Sw,2),
   " | R² = ", round(R2_SW,2),
   "</span><br>",
-   "<span style='color:magenta;'>NIR: R = ", round(cor_nir,2),
-  " | R² = ", round(R2_nir,2)
+   "<span style='color:orange;'>SWIR2: R = ", round(cor_Sw2,2),
+  " | R² = ", round(R2_SW2,2)
 )
 
 p_WPI_GR2 <- p_WPI_GR  +
   annotate("richtext",     x = max(df_corr$Longitude, na.rm = TRUE)-0.1,
-         y = max(values_long$Value, na.rm = TRUE)-2,
+         y = max(values_long$Value, na.rm = TRUE)/2,
            label = label_text,
            hjust = 0,
            size = 3)
@@ -389,8 +401,8 @@ label_text <- paste0(
 )
 
 p_WPI_INDEX2 <- p_WPI_INDEX  +
-  annotate("richtext",     x = max(df_corr$Longitude, na.rm = TRUE)-0.12,
-         y = max(values_long_INDEX$Value, na.rm = TRUE)-2,
+  annotate("richtext",     x = max(df_corr$Longitude, na.rm = TRUE)-0.1,
+         y = max(values_long_INDEX$Value, na.rm = TRUE)/2,
            label = label_text,
            hjust = 0,
            size = 3)
@@ -573,8 +585,8 @@ label_text <- paste0(
 )
 
 p_FP_GR2 <- p_FP_GR  +
-  annotate("richtext",     x = max(df_corr$Longitude, na.rm = TRUE)-0.12,
-         y = max(values_long$Value, na.rm = TRUE)-8150,
+  annotate("richtext",     x = max(df_corr$Longitude, na.rm = TRUE)-0.05,
+         y = (max(values_long$Value, na.rm = TRUE)/2) - 1500,
            label = label_text,
            hjust = 0,
            size = 3)
@@ -734,75 +746,75 @@ ggsave(file.path(output, "heavymetal_INDEX.png"), p_FP_IDX, height = 6, width = 
 #### --------------------------------------------
 # Interpolate
 
-# auf Ausdehnung der Maske zuschneiden
-mask <- project(sampleloc_extent2, crs(idw_out_rast))
+# # auf Ausdehnung der Maske zuschneiden
+# mask <- project(sampleloc_extent2, crs(idw_out_rast))
 
-wpi_interpolate <- func_interpoltate(waterPolIndex, VAR = "WPi", mask, name = "WPi_interpolate", data_dir_valid_masekd)
-plot(p_interpolate)
-brks <- c( 0,1,2,3,4, 6, 10, 15, 30)#seq(0.3, 20,  by = 4)
+# wpi_interpolate <- func_interpoltate(waterPolIndex, VAR = "WPi", mask, name = "WPi_interpolate", data_dir_valid_masekd)
+# plot(p_interpolate)
+# brks <- c( 0,1,2,3,4, 6, 10, 15, 30)#seq(0.3, 20,  by = 4)
 
-png(file.path(output,  paste0("wpi_interpolate",".png")), height = 1000, width = 1000)
-plot(wpi_interpolate$var1.pred, plg = list(title = "WPI"), , main = "WPI", breaks = brks)
-plot(gulf_shp_pj, add = TRUE)
-points(sampleloc_points_pj, col = "red")
-points(indloc_pj, col = "black", pch = 15, cex = 1)
-dev.off()
+# png(file.path(output,  paste0("wpi_interpolate",".png")), height = 1000, width = 1000)
+# plot(wpi_interpolate$var1.pred, plg = list(title = "WPI"), , main = "WPI", breaks = brks)
+# plot(gulf_shp_pj, add = TRUE)
+# points(sampleloc_points_pj, col = "red")
+# points(indloc_pj, col = "black", pch = 15, cex = 1)
+# dev.off()
 
-F_interpolate <- func_interpoltate(heavymetal, VAR = "F_mean", mask, name = "F_interpolate", data_dir_valid_masekd)
-brks <- c( 0,0.3,5,10,15, 20)#seq(0.3, 20,  by = 4)
-brks <- c( 0,1,2,3,4,5,10,15,20)
-png(file.path(output,  paste0("F_interpolate",".png")), height = 1000, width = 1000)
-plot(F_interpolate$var1.pred, plg = list(title = "[mg/l]"), 
-  breaks = brks, main = "F")
-plot(gulf_shp_pj, add = TRUE)
-points(sampleloc_points_pj, col = "red")
-points(indloc_pj, col = "black", pch = 15, cex = 1)
-dev.off()
+# F_interpolate <- func_interpoltate(heavymetal, VAR = "F_mean", mask, name = "F_interpolate", data_dir_valid_masekd)
+# brks <- c( 0,0.3,5,10,15, 20)#seq(0.3, 20,  by = 4)
+# brks <- c( 0,1,2,3,4,5,10,15,20)
+# png(file.path(output,  paste0("F_interpolate",".png")), height = 1000, width = 1000)
+# plot(F_interpolate$var1.pred, plg = list(title = "[mg/l]"), 
+#   breaks = brks, main = "F")
+# plot(gulf_shp_pj, add = TRUE)
+# points(sampleloc_points_pj, col = "red")
+# points(indloc_pj, col = "black", pch = 15, cex = 1)
+# dev.off()
 
-lm_data_p <- heavymetal
-lm_data_p$P_mean[is.na(lm_data_p$P_mean)] <- 130
-p_interpolate <- func_interpoltate(lm_data_p, VAR = "P_mean", mask, name = "P_interpolate", data_dir_valid_masekd)
-plot(p_interpolate)
-brks <- c( 0, 0.5,1,2,3,4, 5, 6)#seq(0.3, 20,  by = 4)
+# lm_data_p <- heavymetal
+# lm_data_p$P_mean[is.na(lm_data_p$P_mean)] <- 130
+# p_interpolate <- func_interpoltate(lm_data_p, VAR = "P_mean", mask, name = "P_interpolate", data_dir_valid_masekd)
+# plot(p_interpolate)
+# brks <- c( 0, 0.5,1,2,3,4, 5, 6)#seq(0.3, 20,  by = 4)
 
-png(file.path(output,  paste0("P_interpolate",".png")), height = 1000, width = 1000)
-plot(p_interpolate$var1.pred / 1000, plg = list(title = "[mg/l]"), 
-  breaks = brks, main = "P")
-plot(gulf_shp_pj, add = TRUE)
-points(sampleloc_points_pj, col = "red")
-points(indloc_pj, col = "black")
-points(indloc_pj, col = "black", pch = 15, cex = 1)
-dev.off()
+# png(file.path(output,  paste0("P_interpolate",".png")), height = 1000, width = 1000)
+# plot(p_interpolate$var1.pred / 1000, plg = list(title = "[mg/l]"), 
+#   breaks = brks, main = "P")
+# plot(gulf_shp_pj, add = TRUE)
+# points(sampleloc_points_pj, col = "red")
+# points(indloc_pj, col = "black")
+# points(indloc_pj, col = "black", pch = 15, cex = 1)
+# dev.off()
 
-Pb_interpolate <- func_interpoltate(heavymetal, VAR = "Pb_mean", mask, name = "Pb_interpolate", data_dir_valid_masekd)
-brks <- c(0,0.2,0.4,0.6,0.8,1)
-png(file.path(output,  paste0("Pb_interpolate",".png")), height = 1000, width = 1000)
-plot(Pb_interpolate$var1.pred, plg = list(title = "[μg/l]"), 
-  breaks = brks, main = "Zn")
-plot(gulf_shp_pj, add = TRUE)
-points(sampleloc_points_pj, col = "red")
-points(indloc_pj, col = "black", pch = 15, cex = 1)
-dev.off()
+# Pb_interpolate <- func_interpoltate(heavymetal, VAR = "Pb_mean", mask, name = "Pb_interpolate", data_dir_valid_masekd)
+# brks <- c(0,0.2,0.4,0.6,0.8,1)
+# png(file.path(output,  paste0("Pb_interpolate",".png")), height = 1000, width = 1000)
+# plot(Pb_interpolate$var1.pred, plg = list(title = "[μg/l]"), 
+#   breaks = brks, main = "Zn")
+# plot(gulf_shp_pj, add = TRUE)
+# points(sampleloc_points_pj, col = "red")
+# points(indloc_pj, col = "black", pch = 15, cex = 1)
+# dev.off()
 
-Zn_interpolate <- func_interpoltate(heavymetal, VAR = "Zn_mean", mask, name = "Zn_interpolate", data_dir_valid_masekd)
-brks <- c(5,8,10,15,20, 25)
-png(file.path(output,  paste0("Zn_interpolate",".png")), height = 1000, width = 1000)
-plot(Zn_interpolate$var1.pred, plg = list(title = "[μg/l]"), 
-  breaks = brks, main = "Zn")
-plot(gulf_shp_pj, add = TRUE)
-points(sampleloc_points_pj, col = "red")
-points(indloc_pj, col = "black", pch = 15, cex = 1)
-dev.off()
+# Zn_interpolate <- func_interpoltate(heavymetal, VAR = "Zn_mean", mask, name = "Zn_interpolate", data_dir_valid_masekd)
+# brks <- c(5,8,10,15,20, 25)
+# png(file.path(output,  paste0("Zn_interpolate",".png")), height = 1000, width = 1000)
+# plot(Zn_interpolate$var1.pred, plg = list(title = "[μg/l]"), 
+#   breaks = brks, main = "Zn")
+# plot(gulf_shp_pj, add = TRUE)
+# points(sampleloc_points_pj, col = "red")
+# points(indloc_pj, col = "black", pch = 15, cex = 1)
+# dev.off()
 
-Cu_interpolate <- func_interpoltate(heavymetal, VAR = "Cu_mean", mask, name = "Cu_interpolate", data_dir_valid_masekd)
-brks <- c(1,2,3,4,5,6,7,8)
-png(file.path(output,  paste0("Cu_interpolate",".png")), height = 1000, width = 1000)
-plot(Cu_interpolate$var1.pred, plg = list(title = "[μg/l]"), 
-  breaks = brks, main = "Zn")
-plot(gulf_shp_pj, add = TRUE)
-points(sampleloc_points_pj, col = "red")
-points(indloc_pj, col = "black", pch = 15, cex = 1)
-dev.off()
+# Cu_interpolate <- func_interpoltate(heavymetal, VAR = "Cu_mean", mask, name = "Cu_interpolate", data_dir_valid_masekd)
+# brks <- c(1,2,3,4,5,6,7,8)
+# png(file.path(output,  paste0("Cu_interpolate",".png")), height = 1000, width = 1000)
+# plot(Cu_interpolate$var1.pred, plg = list(title = "[μg/l]"), 
+#   breaks = brks, main = "Zn")
+# plot(gulf_shp_pj, add = TRUE)
+# points(sampleloc_points_pj, col = "red")
+# points(indloc_pj, col = "black", pch = 15, cex = 1)
+# dev.off()
 
 # --------------------------------------------------------
 # RandomForest Modelle mit Interpolated F und P 
@@ -811,11 +823,11 @@ library(caret)
 library(randomForest)
 library(ranger)
 
-output_RF <- file.path(output, "RF_interpolate")
+output_RF <- file.path(output, "RF_NROM_interpolate")
 dir.create(output_RF)
-output_MODLE <- "./RF_models"
+output_MODLE <- "./RF_NORM_models"
 dir.create(output_MODLE)
-raster_outRF_pred <- file.path(data_dir_valid_masekd, "RF_pred")
+raster_outRF_pred <- file.path(data_pif, "RF_NORM_pred")
 dir.create(raster_outRF_pred)
 
 # load interpolate data
@@ -823,13 +835,24 @@ WPI_interpolate <- rast(file.path(data_dir_valid_masekd, "WPi_interpolate.tif"))
 F_interpolate <- rast(file.path(data_dir_valid_masekd, "F_interpolate.tif")) 
 P_interpolate <- rast(file.path(data_dir_valid_masekd, "P_interpolate.tif")) 
 
-# prep landsat remot sensing data
-sampleloc_extent2_pj <- project(sampleloc_extent2, crs(valid_SEP_Extent_masked))
-mask_interpolate <- project(F_interpolate,  crs(valid_SEP_Extent_masked))
+WPI_interpolate <- project(WPI_interpolate,  crs(valid_SEP_Extent))
+WPI_interpolate <- crop(WPI_interpolate, valid_SEP_Extent)
+valid_SEP_Extent_res <- resample(valid_SEP_Extent$Blue, WPI_interpolate$var1.pred)
+WPI_interpolate_mask <- mask(WPI_interpolate, valid_SEP_Extent_res)
 
-RSdata_valid <- resample(valid_SEP_Extent_masked, mask_interpolate)
+valid_SEP_Extent_res <- resample(valid_SEP_Extent$Blue, F_interpolate$var1.pred)
+F_interpolate_mask <- mask(F_interpolate, valid_SEP_Extent_res)
+
+valid_SEP_Extent_res <- resample(valid_SEP_Extent$Blue, P_interpolate$var1.pred)
+P_interpolate_mask <- mask(P_interpolate, valid_SEP_Extent_res)
+
+# prep landsat remot sensing data
+sampleloc_extent2_pj <- project(sampleloc_extent2, crs(valid_SEP_Extent))
+mask_interpolate <- project(F_interpolate_mask,  crs(valid_SEP_Extent))
+
+# RSdata_valid <- resample(valid_SEP_Extent, mask_interpolate)
 RSdata_valid <- mask(RSdata_valid, sampleloc_extent2_pj)
-names(RSdata_valid) <- names(valid_SEP_Extent_masked) 
+names(RSdata_valid) <- names(valid_SEP_Extent) 
 plot(RSdata_valid)
 
 # corssvalidation 
@@ -840,7 +863,7 @@ set.seed(42)
 # -------------------------------------------
 # Random Forest für Water Pollution Index ----
 brks <- c( 0,1,2,3,4, 6, 10, 15, 30)#seq(0.3, 20,  by = 4)
-RF_WPI <- func_RF_ranger(WPI_interpolate, RSdata_valid, model_name = "WPI_RF4", 
+RF_WPI <- func_RF_ranger(WPI_interpolate, RSdata_valid, model_name = "WPI_RF", 
                 sampleloc_extent2_pj, output_MODLE, output_RF, raster_outRF_pred,
                 brks = brks, unite = "WPI")       
 
@@ -848,7 +871,7 @@ RF_WPI <- func_RF_ranger(WPI_interpolate, RSdata_valid, model_name = "WPI_RF4",
 # RandomForest für Florine F ----
 unite <- "[mg/l]"
 brks <- c( 0,1,2,3,4,5,10,15,20)
-RF_F <- func_RF_ranger(F_interpolate, RSdata_valid, model_name = "F_RF3", 
+RF_F <- func_RF_ranger(F_interpolate, RSdata_valid, model_name = "F_RF", 
                 sampleloc_extent2_pj, output_MODLE, output_RF, raster_outRF_pred,
                 brks = brks, unite = unite)
 
@@ -856,7 +879,7 @@ RF_F <- func_RF_ranger(F_interpolate, RSdata_valid, model_name = "F_RF3",
 # RandomForest für Phsophor P ----
 unite <- "[mg/l]"
 brks <- c( 0, 0.5,1,2,3,4, 5, 6)#
-RF_P <- func_RF_ranger(P_interpolate, RSdata_valid, model_name = "P_RF3", 
+RF_P <- func_RF_ranger(P_interpolate, RSdata_valid, model_name = "P_RF", 
                 sampleloc_extent2_pj, output_MODLE, output_RF, raster_outRF_pred,
                 brks = brks, unite = unite)
 
