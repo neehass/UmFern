@@ -890,7 +890,7 @@ func_RF_ranger_class <- function(dat_interpolate, RSdata_valid, model_name,
 
 
     # Projektion & Resampling
-    WPI_interpolate_pj <- project(WPI_interpolate, crs(RSdata_valid))
+    WPI_interpolate_pj <- project(dat_interpolate, crs(RSdata_valid))
     RSdata_valid <- resample(RSdata_valid, WPI_interpolate_pj)
 
     # Feature Engineering
@@ -1002,7 +1002,7 @@ func_RF_ranger_class <- function(dat_interpolate, RSdata_valid, model_name,
     dev.off()
 
 
-    return(list(RF = rf_model_WPI_RF, pred = pred_WPI))
+    return(list(RF = rf_model, pred = pred_WPI))
 }
 
 func_pred_RF <- function(raster, model, sampleloc_extent3, outpur_dir){
@@ -1015,14 +1015,24 @@ func_pred_RF <- function(raster, model, sampleloc_extent3, outpur_dir){
 
     start <- Sys.time()
     rast <- raster[[i]]
+     # Feature Engineering
+    rast$TSM_laili <- app(rast[[c("Blue","Red")]],
+                                fun = function(x) func_TMS_Laili(x[,1], x[,2]))
 
-    rast$TSM_laili <- app( rast[[c("Blue","Red")]], fun = function(x) {   func_TMS_Laili(x[,1], x[,2]) })
-    rast$logChla <- app(rast[[c("Red","Green")]],fun = function(x) {  func_log_Chl(x[,1], x[,2]) })
+    rast$logChla <- app(rast[[c("Red","Green")]],
+                                fun = function(x) func_log_Chl(x[,1], x[,2]))
+
+
     rast$NDWI <- app(rast[[c("Green","NIR")]],fun = function(x) { func_NDWI(x[,1] , x[,2])})
+    rast$TI <- app(rast[[c("Red","Green")]],fun = function(x) { func_TI(x[,1] , x[,2])})
+    rast$sediment <- app(rast[[c("Red","Blue")]],fun = function(x) { func_sedi(x[,1] , x[,2])})
+    rast$NDSSI <- app(rast[[c("Red","NIR")]],fun = function(x) { func_NDSSI(x[,1] , x[,2])})
+
     rast$SWIR1_NIR <- app(rast[[c("SWIR1","NIR")]],fun = function(x) {  x[,1] / x[,2] })
-    rast$B_G <- app(rast[[c("Blue","Green")]],fun = function(x) {  x[,1] / x[,2] })
-    rast$R_NIR_SWIR1 <- app(rast[[c("Red","NIR", "SWIR1")]],fun = function(x) {  (x[,1] + x[,2]) /  x[,3]})
+    # rast$B_G <- app(rast[[c("Blue","Green")]],fun = function(x) {  x[,1] / x[,2] })
+    # rast$R_NIR_SWIR1 <- app(rast[[c("Red","NIR", "SWIR1")]],fun = function(x) {  (x[,1] + x[,2]) /  x[,3]})
     
+
     # prediction
     pred <- terra::predict(rast, model)
 

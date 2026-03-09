@@ -61,12 +61,15 @@ gulf_shp <- tunisia_shp[(tunisia_shp$name == "Gabès") | (tunisia_shp$name == "S
 # sampleloc_extent <- vect(file.path(data_elZrelli_shp, "elZrelli2018_sampleloc_EXTENT.shp"))
 # sampleloc_extent <- erase(sampleloc_extent, gulf_shp)
 
-# sampleloc_extent2 <- vect(file.path(data_elZrelli_shp, "elZrelli2018_sampleloc_EXTENT2.shp"))
-# sampleloc_extent2 <- erase(sampleloc_extent2, gulf_shp)
+sampleloc_extent2 <- vect(file.path(data_elZrelli_shp, "elZrelli2018_sampleloc_EXTENT2.shp"))
+sampleloc_extent2 <- erase(sampleloc_extent2, gulf_shp)
 sampleLoc_points <- vect(file.path(data_elZrelli_shp, "elZrelli2018_sampleloc2.shp"))
 
+sampleloc_extent4_land <- vect(file.path(data_elZrelli_shp, "elZrelli2018_sampleloc_EXTENT4_land.shp"))
+sampleloc_extent4_land <- erase(sampleloc_extent4_land, gulf_shp)
+
 # plot industrie loc and sample locs
-# plot(sampleloc_extent)
+# plot(sampleloc_extent4_land)
 # lines(gulf_shp, add = TRUE, col = "darkgrey", alpha = 0.2)
 # points(sampleLoc_points, col = "cyan")
 # points(ind_loc, col = "red", pch = 15)
@@ -823,7 +826,7 @@ library(caret)
 library(randomForest)
 library(ranger)
 
-output_RF <- file.path(output, "RF_NROM_interpolate")
+output_RF <- file.path(output, "RF_NORM_interpolate")
 dir.create(output_RF)
 output_MODLE <- "./RF_NORM_models"
 dir.create(output_MODLE)
@@ -855,8 +858,12 @@ RSdata_valid <- mask(RSdata_valid, sampleloc_extent2_pj)
 names(RSdata_valid) <- names(valid_SEP_Extent) 
 plot(RSdata_valid)
 
+vals <- terra::extract(RSdata_valid, sampleloc_extent2_pj)
+sampleloc_Rvalid_pj <- sampleloc_extent2_pj[!is.na(vals[,2]), ]
+plot(sampleloc_extent2_pj)
+
 # corssvalidation 
-ctrl <- trainControl( method = "cv", number = 5)
+# ctrl <- trainControl( method = "cv", number = 5)
 
 set.seed(42)
 # windows()
@@ -864,7 +871,7 @@ set.seed(42)
 # Random Forest für Water Pollution Index ----
 brks <- c( 0,1,2,3,4, 6, 10, 15, 30)#seq(0.3, 20,  by = 4)
 RF_WPI <- func_RF_ranger(WPI_interpolate, RSdata_valid, model_name = "WPI_RF", 
-                sampleloc_extent2_pj, output_MODLE, output_RF, raster_outRF_pred,
+                sampleloc_Rvalid_pj, output_MODLE, output_RF, raster_outRF_pred,
                 brks = brks, unite = "WPI")       
 
 # -------------------------------------------
@@ -893,11 +900,11 @@ library(caret)
 library(randomForest)
 library(ranger)
 getwd()
-output_RF <- file.path(output, "RF_Klass_interpolate")
+output_RF <- file.path(output, "RF_NORM_Klass_interpolate")
 dir.create(output_RF)
-output_MODEL <- "./RF_Klass_models"
+output_MODEL <- "./RF_NORM_Klass_models"
 dir.create(output_MODEL)
-raster_outRF_pred <- file.path(data_dir_valid_masekd, "RF_Klass_pred")
+raster_outRF_pred <- file.path(data_dir_valid_masekd, "RF_NORM_Klass_pred")
 dir.create(raster_outRF_pred)
 
 # load interpolate data
@@ -906,23 +913,21 @@ F_interpolate <- rast(file.path(data_dir_valid_masekd, "F_interpolate.tif"))
 P_interpolate <- rast(file.path(data_dir_valid_masekd, "P_interpolate.tif")) 
 Cu_interpolate <- rast(file.path(data_dir_valid_masekd, "Cu_interpolate.tif")) 
 
-
-
 # prep landsat remot sensing data
 sampleloc_extent2_pj <- project(sampleloc_extent2, crs(valid_SEP_Extent_masked))
+
 mask_interpolate <- project(F_interpolate,  crs(valid_SEP_Extent_masked))
 
 RSdata_valid <- resample(valid_SEP_Extent_masked, mask_interpolate)
 RSdata_valid <- mask(RSdata_valid, sampleloc_extent2_pj)
 names(RSdata_valid) <- names(valid_SEP_Extent_masked) 
-#plot(RSdata_valid)
-
-# normlize 
-band_means <- global(RSdata_valid, "mean", na.rm = TRUE)[,1] # mittelwert pro band
-RSdata_valid_norm <- RSdata_valid - band_means
+# plot(RSdata_valid) 
+vals <- terra::extract(RSdata_valid, sampleloc_extent2_pj)
+sampleloc_Rvalid_pj <- sampleloc_extent2_pj[!is.na(vals[,2]), ]
+plot(sampleloc_extent2_pj)
 
 set.seed(42)
-windows()
+# windows()
 # -------------------------------------------
 # Water Pollution Index ----
 # Random Forest KLASSIFIKATION für Water Pollution Index ----
@@ -934,18 +939,18 @@ rcl <- matrix(c(-Inf, 1, 1,
   5, Inf, 5), ncol = 3, byrow = TRUE)
 
 labs <- c("Not affected", "Slightly affected","Moderately affected","Strongly affected","Seriously affected")
-RF_class_WPI <- func_RF_ranger_class(WPI_interpolate, RSdata_valid_norm, "WP_RF_class",
-                                  sampleloc_extent2_pj, output_MODEL,
+RF_class_WPI <- func_RF_ranger_class(WPI_interpolate, RSdata_valid, "WP_RF_class",
+                                  sampleloc_Rvalid_pj, output_MODEL,
                                   output_RF, raster_outRF_pred,
                                   rcl, unite = "WPI", labs )   
 
 
 
 # -------------------------------------------
-# Random Forest KLASSIFIKATION für Water Pollution Index ----
+# Random Forest KLASSIFIKATION für Flourine ----
 
-RF_class_WPI <- func_RF_ranger_class(WPI_interpolate, RSdata_valid_norm, "WP_RF_class_NORM",
-                                  sampleloc_extent2_pj, output_MODEL,
+RF_class_F <- func_RF_ranger_class(F_interpolate, RSdata_valid_norm, "WP_RF_class_NORM",
+                                  sampleloc_Rvalid_pj, output_MODEL,
                                   output_RF, raster_outRF_pred,
                                   rcl, unite = "WPI")   
 
@@ -953,8 +958,8 @@ RF_class_WPI <- func_RF_ranger_class(WPI_interpolate, RSdata_valid_norm, "WP_RF_
 # -------------------------------------------
 # Random Forest KLASSIFIKATION für Water Pollution Index ----
 
-RF_class_WPI <- func_RF_ranger_class(WPI_interpolate, RSdata_valid_norm, "WP_RF_class_NORM",
-                                  sampleloc_extent2_pj, output_MODEL,
+RF_class_WPI <- func_RF_ranger_class(P_interpolate, RSdata_valid_norm, "WP_RF_class_NORM",
+                                  sampleloc_Rvalid_pj, output_MODEL,
                                   output_RF, raster_outRF_pred,
                                   rcl, unite = "WPI")   
 
