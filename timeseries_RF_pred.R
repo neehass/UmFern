@@ -75,6 +75,17 @@ raster_years <- lapply(files_raster, function(x){rast(file.path(data_crop_dir, x
 names(raster_years) <- paste0("year_",unique_years)
 raster_years <- lapply(raster_years, function(x) {x[[ !names(x) %in% c("CoastalAerosol", "SWIR2") ]]})
 
+png(file.path(output, paste0("RAW", ".png")), height = 800, width = 800)
+par(mfrow=c(6,4))
+for(y in 1:length(unique_years)){
+    # max_abs <- max(abs(global(baseline_diff[[y]], "max", na.rm=TRUE)),
+    #             abs(global(baseline_diff[[y]], "min", na.rm=TRUE)))
+
+  plot(all_pred_WPI[[y]],
+       main = paste("WPI", unique_years[y]),  breaks = brks)
+}
+dev.off()
+
 # # 2013 zscore
 # # einmal aus Trainingsjahr berechnen
 # train_stats <- global(raster_years[["year_2013"]], c("mean","sd"), na.rm=TRUE)
@@ -96,7 +107,7 @@ all_pred_WPI <- func_pred_RF(raster_years, rf_model_WPI_RF, sampleloc_extent3, o
 
 brks <- c( 0,1,2,3,4, 6, 10, 15, 30)#seq(0.3, 20,  by = 4)
 png(file.path(output, paste0(name_RF, "_interpolate_RF_pred.png")), height = 800, width = 800)
-par(mfrow=c(7,4))
+par(mfrow=c(6,4))
 for(y in 1:length(unique_years)){
     # max_abs <- max(abs(global(baseline_diff[[y]], "max", na.rm=TRUE)),
     #             abs(global(baseline_diff[[y]], "min", na.rm=TRUE)))
@@ -107,15 +118,25 @@ for(y in 1:length(unique_years)){
 dev.off()
 
 # Klassifikation and NORMIERT ------------------------
-folder_PRED_WPI_class <- file.path(folder_PRED, "WPI_class_NORM")
+name_RF <- "WPI_class_NORM"
+folder_PRED_WPI_class <- file.path(folder_PRED, name_RF)
 dir.create(folder_PRED_WPI_class)
 
 # rf_model_WPI_RF_CLASS$forest$independent.variable.names # variable names
 
 all_pred_WPI_Class <- func_pred_RF(raster_years, rf_model_WPI_RF_CLASS, sampleloc_extent3, outpur_dir = folder_PRED_WPI_class)
 
-plot(all_pred_WPI_Class[[1]],
-       main = paste("WPI", unique_years[20]))
+labs <- c("Not affected", "Slightly affected","Moderately affected","Strongly affected","Seriously affected")
+png(file.path(output, paste0(name_RF, "_interpolate_RF_pred.png")), height = 800, width = 800)
+par(mfrow=c(6,4))
+for(y in 1:length(unique_years)){
+    # max_abs <- max(abs(global(baseline_diff[[y]], "max", na.rm=TRUE)),
+    #             abs(global(baseline_diff[[y]], "min", na.rm=TRUE)))
+       levels(all_pred_WPI_Class[[y]]) <- data.frame(ID=1:5, label=labs)
+  plot(all_pred_WPI_Class[[y]],
+       main = paste("WPI", unique_years[y]), )
+}
+dev.off()
 
 # ---------------------------------------------------------
 # make predictions with F model ------------------

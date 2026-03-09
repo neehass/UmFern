@@ -839,7 +839,7 @@ func_RF_ranger <- function(dat_interpolate, RSdata_valid, model_name,
         ggsave(file.path(output_RF, paste0(model_name,"_pred_VarImp.png")), p, width = 5, height = 5, scale = 1.2)
 
         pred_WPI <- predict(RSdata_valid, rf_model_WPI_RF)
-        pred_WPI <- mask(pred_WPI, sampleloc_extent2_pj)
+        # pred_WPI <- mask(pred_WPI, sampleloc_extent2_pj)
         writeRaster(pred_WPI, file.path(raster_outRF_pred, paste0(model_name,"_pred.tif")), overwrite = TRUE)
 
         # breaks definded 
@@ -956,7 +956,7 @@ func_RF_ranger_class <- function(dat_interpolate, RSdata_valid, model_name,
     ggsave(file.path(output_RF, paste0(model_name,"_pred_VarImp.png")), p, width = 5, height = 5, scale = 1.2)
 
     pred_WPI <- predict(RSdata_valid, rf_model)
-    pred_WPI <- mask(pred_WPI, sampleloc_extent2_pj)
+    # pred_WPI <- mask(pred_WPI, sampleloc_extent2_pj)
     writeRaster(pred_WPI, file.path(raster_outRF_pred, paste0(model_name,"_pred.tif")), overwrite = TRUE)
 
     # breaks definded 
@@ -1035,10 +1035,11 @@ func_pred_RF <- function(raster, model, sampleloc_extent3, outpur_dir){
 
     # prediction
     pred <- terra::predict(rast, model)
+    pred_mask <- pred
 
     # mask 
-    sampleloc_extent3_pj <- project(sampleloc_extent3, crs(pred))
-    pred_mask <- mask(pred, sampleloc_extent3_pj)
+    #sampleloc_extent3_pj <- project(sampleloc_extent3, crs(pred))
+    # pred_mask <- mask(pred, sampleloc_extent3_pj)
     # plot(pred_mask)
     
     stop <- Sys.time()
