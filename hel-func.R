@@ -1058,3 +1058,217 @@ func_pred_RF <- function(raster, model, sampleloc_extent3, outpur_dir){
   return(all_pred)
 
 }
+
+
+func_index <- function(rast){
+    rast$TSM_laili <- app(rast[[c("Blue","Red")]],
+                                fun = function(x) func_TMS_Laili(x[,1], x[,2]))
+
+    rast$logChla <- app(rast[[c("Red","Green")]],
+                                fun = function(x) func_log_Chl(x[,1], x[,2]))
+
+
+    rast$NDWI <- app(rast[[c("Green","NIR")]],fun = function(x) { func_NDWI(x[,1] , x[,2])})
+    rast$TI <- app(rast[[c("Red","Green")]],fun = function(x) { func_TI(x[,1] , x[,2])})
+    rast$sediment <- app(rast[[c("Red","Blue")]],fun = function(x) { func_sedi(x[,1] , x[,2])})
+    rast$NDSSI <- app(rast[[c("Red","NIR")]],fun = function(x) { func_NDSSI(x[,1] , x[,2])})
+
+    rast$SWIR1_NIR <- app(rast[[c("SWIR1","NIR")]],fun = function(x) {  x[,1] / x[,2] })
+
+    return(rast)
+}
+
+func_median_mean <- function(raster){
+    median_chla_2013_masked <- app(raster, median, na.rm = TRUE)
+    mean_chla_2013_masked <- app(raster, mean, na.rm = TRUE)
+    sd_chla_2013_masked <- app(raster, sd, na.rm=TRUE)
+    max_chla_2013_masked <- app(raster, max, na.rm=TRUE)
+    min_chla_2013_masked <- app(raster, min, na.rm=TRUE)
+
+    stacked <- c(median_chla_2013_masked, mean_chla_2013_masked, sd_chla_2013_masked, max_chla_2013_masked, min_chla_2013_masked)
+    return(stacked)
+}
+
+func_RF_ranger_MODIS <- function(dat_interpolate, RSdata_valid, model_name, output_MODLE, output_RF, raster_outRF_pred,
+                              brks, unite){
+        WPI_interpolate_pj <- project(dat_interpolate,  crs(RSdata_valid))
+
+        RSdata_valid <- resample(RSdata_valid, WPI_interpolate_pj)
+        names(RSdata_valid)
+        
+        all_RF_data <- c(RSdata_valid, WPI_interpolate_pj$var1.pred)
+        plot(all_RF_data)
+
+        if(ncol(all_RF_data >= 50000)){
+             rf_df_sample <- spatSample(all_RF_data,size = 50000, # sample 
+        method = "random", as.df = TRUE, na.rm = TRUE)
+        } else {
+            rf_df_sample <- as.dataframe(all_RF_data)
+        }
+       
+        
+        rf_model_WPI_RF <- ranger( # schneller da viele pixel
+            dependent.variable.name = "var1.pred",
+            data = rf_df_sample,
+            num.trees = 500,
+            mtry = floor(sqrt(ncol(rf_df_sample) - 1)),
+            min.node.size = 5,
+            importance = "permutation",  
+            num.threads = parallel::detectCores() - 1
+        )
+        
+        print("save model")
+        saveRDS(rf_model_WPI_RF, file = file.path(output_MODLE, paste0("rf_model_",model_name,".rds")))
+        func_saveRF_metric(rf_model_WPI_RF, model_name, output_RF)
+
+        # Variable Importance
+        # ranger::importance(rf_model_WPI_RF)
+        p <- func_plot_RF_varImp(rf_model_WPI_RF)
+        ggsave(file.path(output_RF, paste0(model_name,"_pred_VarImp.png")), p, width = 5, height = 5, scale = 1.2)
+
+        print("prediction")
+        pred_WPI <- predict(RSdata_valid, rf_model_WPI_RF)
+        writeRaster(pred_WPI, file.path(raster_outRF_pred, paste0(model_name,"_pred.tif")), overwrite = TRUE)
+
+        # breaks definded 
+        if(unique(sapply(strsplit(model_name, "_"), `[`, 1)) == "P"){ # einheit von ym/l zu mg/l
+            pred_WPI <- pred_WPI/1000
+            WPI_interpolate_pj[[1]] <- WPI_interpolate_pj[[1]] /1000
+        }
+        png(file.path(output_RF,  paste0(model_name, "_interpolate_RF_pred.png")), height = 1000, width = 1000)
+        plot(pred_WPI, plg = list(title = unite), main = model_name, breaks = brks)
+        plot(gulf_shp_pj, add = TRUE)
+        points(sampleloc_points_pj, col = "red")
+        points(indloc_pj, col = "black", pch = 15, cex = 1)
+        dev.off()
+
+        # ERROR RMSE
+        pred_WPI_ERROR <- abs(pred_WPI - WPI_interpolate_pj)
+        rmse <- sqrt(global((pred_WPI - WPI_interpolate_pj)^2,
+                    fun = "mean", # Ein Pixel liegt im Mittel etwa ±RMSE Einheiten vom Referenzwert entfernt.
+                    na.rm = TRUE))
+        writeRaster(pred_WPI_ERROR, file.path(raster_outRF_pred, paste0("RMSE_pred_", model_name,".tif")), overwrite = TRUE)
+   
+
+        # R2
+        SS_res <- global((pred_WPI - WPI_interpolate_pj[[1]])^2, "sum", na.rm = TRUE)[1,1]
+
+        # Gesamtvarianz
+        mean_obs <- global(WPI_interpolate_pj[[1]], "mean", na.rm = TRUE)[1,1]
+        SS_tot <- global((WPI_interpolate_pj[[1]] - mean_obs)^2, "sum", na.rm = TRUE)[1,1]
+
+        R2 <- 1 - (SS_res / SS_tot)
+
+        png(file.path(output_RF,  paste0("RMSE_",model_name,"_interpolate_RF_pred",".png")), height = 1000, width = 1000)
+        rng <- max(abs(values(pred_WPI_ERROR)), na.rm = TRUE)
+        plot(pred_WPI_ERROR,col = hcl.colors(100, "RdBu"),zlim = c(-rng, rng), 
+                main = paste(model_name, "\nRMSE:", round(rmse[1,], 2), "R2:", round(R2, 2)))
+        points(sampleloc_points_pj, col = "red")
+        points(indloc_pj, col = "black", pch = 15, cex = 1)
+        dev.off()
+    
+
+    return(list(RF = rf_model_WPI_RF, pred = pred_WPI))
+}
+
+
+func_RF_ranger_classMODIS <- function(dat_interpolate, RSdata_valid, model_name, output_MODEL,
+                                  output_RF, raster_outRF_pred,
+                                  rcl, unite, labs){
+
+
+    # Projektion & Resampling
+    WPI_interpolate_pj <- project(dat_interpolate, crs(RSdata_valid))
+    RSdata_valid <- resample(RSdata_valid, WPI_interpolate_pj)
+
+    # WPI klassifizieren
+    WPI_interpolate_pj$WPI_class <- classify(WPI_interpolate_pj$var1.pred, rcl)
+    WPI_interpolate_pj$WPI_class <- as.factor(WPI_interpolate_pj$WPI_class)
+
+    all_RF_data <- c(RSdata_valid, WPI_interpolate_pj$WPI_class)
+
+    valid_mask <- app(RSdata_valid, function(x) all(!is.na(x)))
+    predictor_stack <- mask(all_RF_data, valid_mask)
+
+    # Sampling
+    if(ncol(all_RF_data) >= 50000){
+            rf_df_sample <- spatSample(predictor_stack,size = 50000, # sample 
+    method = "random", as.df = TRUE, na.rm = TRUE)
+    } else {
+        rf_df_sample <- as.data.frame(predictor_stack)
+    }
+    
+    rf_df_sample$WPI_class <- as.factor(rf_df_sample$WPI_class)
+    rf_df_sample <- na.omit(rf_df_sample)
+    
+    # # normieren
+    # # Alle Spalten außer evtl. Zielvariable normalisieren
+    # cols_to_scale <- setdiff(names(rf_df_sample), "WPI_class") # falls var1.pred Ziel ist
+
+    # rf_df_sample[cols_to_scale] <- lapply(rf_df_sample[cols_to_scale], anomal)
+
+    # RF Classification
+    rf_model <- ranger(
+        dependent.variable.name = "WPI_class",
+        data = rf_df_sample,
+        num.trees = 500,
+        mtry = floor(sqrt(ncol(rf_df_sample) - 1)),
+        importance = "permutation",
+        classification = TRUE,
+        num.threads = parallel::detectCores() - 1
+    )
+
+    saveRDS(rf_model, file = file.path(output_MODEL, paste0("rf_model_", model_name, ".rds")))
+    func_saveRF_metric_class(rf_model, model_name, output_RF)
+
+    # Variable Importance
+    # ranger::importance(rf_model_WPI_RF)
+    p <- func_plot_RF_varImp(rf_model)
+    print(ranger::importance(rf_model))
+    ggsave(file.path(output_RF, paste0(model_name,"_pred_VarImp.png")), p, width = 5, height = 5, scale = 1.2)
+
+    # predict 
+    pred_WPI <- predict(predictor_stack, rf_model)
+    pred_WPI <- mask(pred_WPI, WPI_interpolate_pj$var1.pred)
+    levels(pred_WPI) <- data.frame(ID=1:5, label=labs)
+
+    writeRaster(pred_WPI, file.path(raster_outRF_pred, paste0(model_name,"_pred.tif")), overwrite = TRUE)
+
+    # breaks definded 
+    png(file.path(output_RF,  paste0(model_name, "_interpolate_RF_pred.png")), height = 1000, width = 1000)
+    plot(pred_WPI, main = model_name)
+    plot(gulf_shp_pj, add = TRUE)
+    points(sampleloc_points_pj, col = "red")
+    points(indloc_pj, col = "black", pch = 15, cex = 1)
+    dev.off()
+
+    # ERROR RMSE
+    pred_WPI_ERROR <- abs(pred_WPI - WPI_interpolate_pj)
+    levels(pred_WPI_ERROR) <- data.frame(ID=1:5, label=labs)
+
+    rmse <- sqrt(global((pred_WPI - WPI_interpolate_pj)^2,
+                fun = "mean", # Ein Pixel liegt im Mittel etwa ±RMSE Einheiten vom Referenzwert entfernt.
+                na.rm = TRUE))
+    writeRaster(pred_WPI_ERROR, file.path(raster_outRF_pred, paste0("RMSE_pred_", model_name,".tif")), overwrite = TRUE)
+
+
+    # R2
+    SS_res <- global((pred_WPI - WPI_interpolate_pj[[1]])^2, "sum", na.rm = TRUE)[1,1]
+
+    # Gesamtvarianz
+    mean_obs <- global(WPI_interpolate_pj[[1]], "mean", na.rm = TRUE)[1,1]
+    SS_tot <- global((WPI_interpolate_pj[[1]] - mean_obs)^2, "sum", na.rm = TRUE)[1,1]
+
+    R2 <- 1 - (SS_res / SS_tot)
+
+    png(file.path(output_RF,  paste0("RMSE_",model_name,"_interpolate_RF_pred",".png")), height = 1000, width = 1000)
+    rng <- max(abs(values(pred_WPI_ERROR)), na.rm = TRUE)
+    plot(pred_WPI_ERROR,col = hcl.colors(100, "RdBu"),zlim = c(-rng, rng), 
+            main = paste(model_name, "\nRMSE:", round(rmse[1,], 2), "R2:", round(R2, 2)))
+    points(sampleloc_points_pj, col = "red")
+    points(indloc_pj, col = "black", pch = 15, cex = 1)
+    dev.off()
+
+
+    return(list(RF = rf_model, pred = pred_WPI))
+}
