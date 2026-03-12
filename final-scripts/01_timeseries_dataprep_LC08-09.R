@@ -393,8 +393,10 @@ norm_ALLyears_list_band <- lapply(norm_files, function(x){rast(file.path(data_pi
 norm_dir <- file.path(output, "normiert_proBAND_sd_CV")
 dir.create(norm_dir)
 for(b in seq_along(bandnames)) {
-    png(file.path(norm_dir, paste0(bandnames[b],"_NORMIERT2013_proBand_pP_smallestTimeseries2013-2025_2.png")), height = 800, width = 800)
-    par(mfrow=c(6,4))
+    png(file.path(norm_dir, 
+      paste0(bandnames[b],"_NORMIERT2013_proBand_pP_smallestTimeseries2013-2025_2.png")), 
+      height = 800, width = 800)
+    par(mfrow=c(3,4))
     for(y in 1:length(unique_years)){
     plot(norm_ALLyears_list_band[[y]][[b]],
         main = paste(unique_years[y] , "-", bandnames[b]))
