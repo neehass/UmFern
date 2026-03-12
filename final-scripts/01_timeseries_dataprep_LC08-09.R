@@ -1,5 +1,7 @@
-# timeseries vorbereiten
+# ------------------------------------------------------------------------
+# timeseries vorbereiten Landsatdaten LC08-09
 # elZrelli is vaildation data, Messungen September 2013
+# ------------------------------------------------------------------------
 
 # packages
 library(terra)
@@ -72,6 +74,7 @@ satNR <- unique(sapply(parts, `[`, 1))
 dates <- sapply(parts, `[`, 4)
 unique_dates <- unique(dates)
 print(sort(unique_dates))
+length(unique_dates)
 
 # band overview:
 satNR_bands <- list(
@@ -92,6 +95,7 @@ print(year)
 raster_year <- func_timestep_sel(year, files_band, satNR_bands, unique_dates, data_dir, time = "ALL") #, staNR_exclude = staNR_exclude)
 
 # Autum
+start <- Sys.time()
 for(y in 1:length(years)){
     year <- years[y] 
     # raster_name <- paste0("median_raster_year_masked", "_", year, ".tif")
@@ -140,7 +144,12 @@ for(y in 1:length(years)){
         next
      }
 }
-
+end <- Sys.time()
+diff_sec <- as.numeric(difftime(end, start, units = "secs"))
+hours   <- floor(diff_sec / 3600)
+minutes <- floor((diff_sec %% 3600) / 60)
+seconds <- round(diff_sec %% 60, 2)
+message(sprintf("Dauer: %02d:%02d:%05.2f (hh:mm:ss)", hours, minutes, seconds))
 
 # ---------------------------------------------------------
 # permanent stabile Pixel für Normierung filtern (pP)------------------
