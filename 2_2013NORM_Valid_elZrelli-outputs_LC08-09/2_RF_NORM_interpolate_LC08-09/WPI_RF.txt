@@ -1,0 +1,9 @@
+Model: WPI_RF
+----------------------------------
+OOB MSE:  0.865063
+OOB RMSE: 0.930088
+OOB R2:   0.752733
+Number of trees: 500
+Mtry: 2
+Min node size: 5
+

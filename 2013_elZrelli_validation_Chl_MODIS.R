@@ -8,6 +8,7 @@ library(mapview)
 library(tidyr)
 library(tidyverse)
 library(ggtext)
+library(ncdf4)
 
 getwd()
 setwd("./Phosphate")
@@ -24,7 +25,8 @@ data_dir_valid_masekd <- "./landsat2013-masked"
 
 # Modis 
 # data_modis <- "./ModisTerra-Chla/MODIST_L3m_CHL_NRT_2022.0-20260310_110439"
-data_modis <- "./MODIS_SEPTEMBER_DATA"
+data_modis_Chla <- "./MODIS_SEPTEMBER_DATA_Chla"
+data_modis_OC <- "./MODIS_SEPTEMBER_DATA_OceanColor"
 
 # data_CHla <- "./NOAAMSL12_chla/chlora/monthly/WW00"
 # data_nlw <- "./NOAAMSL12_chla/nlw/monthly/WW00"
@@ -37,12 +39,60 @@ data_modis <- "./MODIS_SEPTEMBER_DATA"
 # nlw <- rast(file.path(data_nlw, files_nlw))
 # plot(nlw[[1]])
 
-# MODIS TERRA 
-files_modis <-  list.files(data_modis , pattern = "_a\\.4km\\.nc$")
-modisTERRA_chla <- rast(file.path(data_modis, files_modis))
-dates_modis <- as.Date(substr(basename(files_modis), 13, 20), format="%Y%m%d")
+# MODIS TERRA Chla
+files_modis_Chla <-  list.files(data_modis_Chla , pattern = "_a\\.4km\\.nc$")
+modisTERRA_chla <- rast(file.path(data_modis_Chla, files_modis_Chla))
+dates_modis <- as.Date(substr(basename(files_modis_Chla), 13, 20), format="%Y%m%d")
 time(modisTERRA_chla) <- dates_modis
 crs(modisTERRA_chla) <- "EPSG:4326" 
+
+# MODIS TERRA Ocean color 
+files_modis_OC <-  list.files(data_modis_OC)
+dates_modis_OC <- as.Date(sub(".*\\.(\\d{8}T\\d{6})\\.*", "\\1", files_modis_OC),
+       format="%Y%m%dT%H%M%S", tz="UTC")
+unique(dates_modis_OC)
+modisTERRA_OC <- nc_open(file.path(data_modis_OC, files_modis_OC[6])) # rast(file.path(data_modis_OC, files_modis_OC[1]))
+names(modisTERRA_OC$var)
+lon <- ncdf4::ncvar_get(modisTERRA_OC, "navigation_data/longitude")
+lat <- ncdf4::ncvar_get(modisTERRA_OC, "navigation_data/latitude")
+# TSM (Nechad 2010)
+rrs667 <- ncdf4::ncvar_get(modisTERRA_OC, "geophysical_data/Rrs_667")
+flags <- ncdf4::ncvar_get(modisTERRA_OC, "geophysical_data/l2_flags")
+summary(flags)
+fill  <- ncdf4::ncatt_get(modisTERRA_OC,
+                          "geophysical_data/Rrs_667",
+                          "_FillValue")$value
+
+scale <- ncdf4::ncatt_get(modisTERRA_OC,
+                          "geophysical_data/Rrs_667",
+                          "scale_factor")$value
+
+offset <- ncdf4::ncatt_get(modisTERRA_OC,
+                           "geophysical_data/Rrs_667",
+                           "add_offset")$value
+ 
+rrs667[rrs667 == fill] <- NA
+rrs667 <- rrs667 * scale + offset                          
+table(rrs667)[1:10]
+
+A <- 228.1
+C <- 0.1686
+
+TSM <- (A * rrs667) / (1 - (rrs667 / C))
+
+df <- data.frame(
+  lon = as.vector(lon),
+  lat = as.vector(lat),
+  tsm = as.vector(TSM)
+)
+df <- df[complete.cases(df), ]
+r_template <- rast(xmin = min(df$lon), xmax = max(df$lon), ymin = min(df$lat), ymax = max(df$lat),resolution = 0.04,crs = "EPSG:4326")
+pts <- vect(df, geom = c("lat", "lon"), crs = "EPSG:4326")
+r_tsm <- rasterize(pts, r_template, field="tsm", fun="mean")
+plot(r_tsm)
+
+time(dates_modis_OC) <- dates_modis_OC
+crs(dates_modis_OC) <- "EPSG:4326" 
 
 # ----------------------------------------------------------------
 # phosphat industry locations ------
@@ -64,6 +114,7 @@ gulf_shp <- tunisia_shp[(tunisia_shp$name == "Gabès") | (tunisia_shp$name == "S
 # load samplelocation data ------------------
 # ---------------------------------------------------------
 sampleloc_extent <- vect(file.path(data_elKateb_shap, "sampleLocation_extent.shp"))
+sampleLoc_extent <- vect(file.path(data_elZrelli_shp, "elZrelli2018_sampleloc_EXTENT-Skhira.shp"))
 
 sampleLoc_points <- vect(file.path(data_elZrelli_shp, "elZrelli2018_sampleloc2.shp"))
 plot(sampleLoc_points)
@@ -360,19 +411,18 @@ WPI_interpolate_pj <- project(WPI_interpolate, crs(chla_2013_sep_points))
 chla_2013_masked <- mask(chla_2013_sep_points, resample(WPI_interpolate_pj$var1.pred, chla_2013_sep_points))
 plot(chla_2013_masekd_stacked_RF)
 
-WPI_interpolate_masked <- mask(WPI_interpolate_pj, terra::resample(chla_2013_sep_points[[1]], WPI_interpolate_pj))
-plot(WPI_interpolate_masked)
+# WPI_interpolate_masked <- mask(WPI_interpolate_pj, terra::resample(chla_2013_sep_points[[1]], WPI_interpolate_pj))
+# plot(WPI_interpolate_masked)
 
-WPI_interpolate_masked2 <- terra::resample(WPI_interpolate_pj, chla_2013[[1]])
-plot(WPI_interpolate_masked2)
-chla_2013stacked_RF <- mask(chla_2013, WPI_interpolate_masked2)
-chla_2013stacked_RF <- func_median_mean(chla_2013stacked_RF)
+# WPI_interpolate_masked2 <- terra::resample(WPI_interpolate_pj, chla_2013[[1]])
+# plot(WPI_interpolate_masked2)
+# chla_2013stacked_RF <- mask(chla_2013, WPI_interpolate_masked2)
+# chla_2013stacked_RF <- func_median_mean(chla_2013stacked_RF)
 
-brks <- c(0,1,2,3,4, 6, 10, 15, 30)#seq(0.3, 20,  by = 4)
-RF_WPI <- func_RF_ranger_MODIS(dat_interpolate = WPI_interpolate_masked2, RSdata_valid = chla_2013stacked_RF, 
-        model_name = "WPI_RF2", output_MODLE, output_RF, raster_outRF_pred,
-                brks = brks, unite = "WPI")  
-
+# brks <- c(0,1,2,3,4, 6, 10, 15, 30)#seq(0.3, 20,  by = 4)
+# RF_WPI <- func_RF_ranger_MODIS(dat_interpolate = WPI_interpolate_masked2, RSdata_valid = chla_2013stacked_RF, 
+#         model_name = "WPI_RF2", output_MODLE, output_RF, raster_outRF_pred,
+#                 brks = brks, unite = "WPI")  
 
 rcl <- matrix(c(-Inf, 1, 1,
   1, 2, 2,
@@ -395,35 +445,9 @@ ncol(chla_2013stacked_RF)
 
 labs <- c("Not affected", "Slightly affected","Moderately affected","Strongly affected","Seriously affected")  
 RF_WPI_KLASS <- func_RF_ranger_classMODIS(dat_interpolate = WPI_interpolate_masked2, 
-                RSdata_valid = chla_2013stacked_RF, model_name = "WPI_R_KLASS", output_MODLE, output_RF, raster_outRF_pred,
-                rcl = brks, unite = "WPI", labs)
+                RSdata_valid = chla_2013stacked_RF, model_name = "WPI_R_KLASS2", output_MODLE, output_RF, raster_outRF_pred,
+                rcl = rcl, unite = "WPI", labs)
 
-chla_2013stacked_pred <- func_median_mean(chla_2013)
-plot(chla_2013stacked_pred)
-
-pred_ALL2013 <- predict(chla_2013stacked_pred, RF_WPI_KLASS$RF)
-levels(pred_ALL2013) <- data.frame(ID=1:5, label=labs)
-plot(pred_ALL2013, main = model_name)
-plot(gulf_shp_pj, add = TRUE)
-points(sampleloc_points_pj, col = "cyan")
-points(indloc_pj, col = "red", pch = 15, cex = 1)
-
-# other time steps test
-
-
-pred_date <- september_dates_clean[format(september_dates_clean, "%y") == "25"]
-
-data_pred <- chla_crop_sepCLEAN[[which(september_dates_clean %in% pred_date)]]
-
-stacked_pred <- func_median_mean(data_pred)
-plot(stacked_pred)
-
-pred_ALL <- predict(stacked_pred, RF_WPI_KLASS$RF)
-levels(pred_ALL) <- data.frame(ID=1:5, label=labs)
-plot(pred_ALL, main = paste(model_name, "2000"))
-plot(gulf_shp_pj, add = TRUE)
-points(sampleloc_points_pj, col = "cyan")
-points(indloc_pj, col = "red", pch = 15, cex = 1)
 
 
 # # ---------------------------------------------------------------------------------

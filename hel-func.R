@@ -112,8 +112,11 @@ func_mask_cloud_EXTENT <- function(raster, data_dir, sampleloc_extent, gabes_haf
         qa <- rast(file.path(data_dir, paste0(name,"_QA_PIXEL.TIF")))
         # plot(qa)
 
+        cloud  <- get_bit(qa, 1)
+        cloud  <- get_bit(qa, 2)
         cloud  <- get_bit(qa, 3)
         shadow <- get_bit(qa, 4)
+
         cloud_mask <- cloud | shadow 
         # plot(cloud_mask)
 
@@ -779,12 +782,11 @@ anomal <- function(x) {
 }
 
 
-func_RF_ranger <- function(dat_interpolate, RSdata_valid, model_name, 
-                            sampleloc_extent2_pj, output_MODLE, output_RF, raster_outRF_pred,
+func_RF_ranger <- function(dat_interpolate, RSdata_valid, model_name, output_MODLE, output_RF, raster_outRF_pred,
                               brks, unite){
         WPI_interpolate_pj <- project(dat_interpolate,  crs(RSdata_valid))
-
-        RSdata_valid <- resample(RSdata_valid, WPI_interpolate_pj)
+        WPI_interpolate_pj <- resample(WPI_interpolate_pj, RSdata_valid)
+        # RSdata_valid <- resample(RSdata_valid, WPI_interpolate_pj)
 
         RSdata_valid$TSM_laili <- app( RSdata_valid[[c("Blue","Red")]], fun = function(x) {   func_TMS_Laili(x[,1], x[,2]) })
         RSdata_valid$logChla <- app(RSdata_valid[[c("Red","Green")]],fun = function(x) {  func_log_Chl(x[,1], x[,2]) })
@@ -811,7 +813,7 @@ func_RF_ranger <- function(dat_interpolate, RSdata_valid, model_name,
         } else {
               rf_df_sample <- rf_df_sample[, !colnames(rf_df_sample) %in% c("NDWI","CoastalAerosol", "SWIR2", "Blue" , "Green" , "Red", "NIR" ,"SWIR1")]
         }
-
+        rf_df_sample <- na.omit(rf_df_sample)
         # # zscore normieren
         # # Alle Spalten außer evtl. Zielvariable normalisieren
         # cols_to_scale <- setdiff(names(rf_df_sample), "var1.pred") # falls var1.pred Ziel ist
@@ -829,8 +831,8 @@ func_RF_ranger <- function(dat_interpolate, RSdata_valid, model_name,
             importance = "permutation",  
             num.threads = parallel::detectCores() - 1
         )
-        
-        saveRDS(rf_model_WPI_RF, file = file.path(output_MODLE, paste0("rf_model_",model_name,".rds")))
+        print("save model")
+        saveRDS(rf_model_WPI_RF, file = file.path(output_MODEL, paste0("rf_model_", model_name, ".rds")))
         func_saveRF_metric(rf_model_WPI_RF, model_name, output_RF)
 
         # Variable Importance
@@ -838,8 +840,10 @@ func_RF_ranger <- function(dat_interpolate, RSdata_valid, model_name,
         p <- func_plot_RF_varImp(rf_model_WPI_RF)
         ggsave(file.path(output_RF, paste0(model_name,"_pred_VarImp.png")), p, width = 5, height = 5, scale = 1.2)
 
-        pred_WPI <- predict(RSdata_valid, rf_model_WPI_RF)
-        # pred_WPI <- mask(pred_WPI, sampleloc_extent2_pj)
+        # predict 
+        pred <- predict(RSdata_valid, rf_model_WPI_RF)
+        pred_WPI <- mask(pred, WPI_interpolate_pj$var1.pred)#   
+        names(pred_WPI) <- names(pred)
         writeRaster(pred_WPI, file.path(raster_outRF_pred, paste0(model_name,"_pred.tif")), overwrite = TRUE)
 
         # breaks definded 
@@ -855,13 +859,12 @@ func_RF_ranger <- function(dat_interpolate, RSdata_valid, model_name,
         dev.off()
 
         # ERROR RMSE
-        pred_WPI_ERROR <- abs(pred_WPI - WPI_interpolate_pj)
-        rmse <- sqrt(global((pred_WPI - WPI_interpolate_pj)^2,
+        pred_WPI_ERROR <- abs(pred_WPI - WPI_interpolate_pj$var1.pred)
+        rmse <- sqrt(global((pred_WPI - WPI_interpolate_pj$var1.pred)^2,
                     fun = "mean", # Ein Pixel liegt im Mittel etwa ±RMSE Einheiten vom Referenzwert entfernt.
                     na.rm = TRUE))
         writeRaster(pred_WPI_ERROR, file.path(raster_outRF_pred, paste0("RMSE_pred_", model_name,".tif")), overwrite = TRUE)
    
-
         # R2
         SS_res <- global((pred_WPI - WPI_interpolate_pj[[1]])^2, "sum", na.rm = TRUE)[1,1]
 
@@ -883,15 +886,15 @@ func_RF_ranger <- function(dat_interpolate, RSdata_valid, model_name,
     return(list(RF = rf_model_WPI_RF, pred = pred_WPI))
 }
 
-func_RF_ranger_class <- function(dat_interpolate, RSdata_valid, model_name,
-                                  sampleloc_extent2_pj, output_MODEL,
+func_RF_ranger_class <- function(dat_interpolate, RSdata_valid, model_name, output_MODEL,
                                   output_RF, raster_outRF_pred,
                                   rcl, unite, labs){
 
 
     # Projektion & Resampling
     WPI_interpolate_pj <- project(dat_interpolate, crs(RSdata_valid))
-    RSdata_valid <- resample(RSdata_valid, WPI_interpolate_pj)
+    WPI_interpolate_pj <- resample(WPI_interpolate_pj, RSdata_valid)
+    # RSdata_valid <- resample(RSdata_valid, WPI_interpolate_pj)
 
     # Feature Engineering
     RSdata_valid$TSM_laili <- app(RSdata_valid[[c("Blue","Red")]],
@@ -929,7 +932,7 @@ func_RF_ranger_class <- function(dat_interpolate, RSdata_valid, model_name,
         } else {
                 rf_df_sample <- rf_df_sample[, !colnames(rf_df_sample) %in% c("NDWI","CoastalAerosol", "SWIR2", "Blue" , "Green" , "Red", "NIR" ,"SWIR1")]
         }
-
+    rf_df_sample <- na.omit(rf_df_sample)
     # # normieren
     # # Alle Spalten außer evtl. Zielvariable normalisieren
     # cols_to_scale <- setdiff(names(rf_df_sample), "WPI_class") # falls var1.pred Ziel ist
@@ -946,7 +949,7 @@ func_RF_ranger_class <- function(dat_interpolate, RSdata_valid, model_name,
         classification = TRUE,
         num.threads = parallel::detectCores() - 1
     )
-
+    print("save model")
     saveRDS(rf_model, file = file.path(output_MODEL, paste0("rf_model_", model_name, ".rds")))
     func_saveRF_metric_class(rf_model, model_name, output_RF)
 
@@ -955,8 +958,10 @@ func_RF_ranger_class <- function(dat_interpolate, RSdata_valid, model_name,
     p <- func_plot_RF_varImp(rf_model)
     ggsave(file.path(output_RF, paste0(model_name,"_pred_VarImp.png")), p, width = 5, height = 5, scale = 1.2)
 
-    pred_WPI <- predict(RSdata_valid, rf_model)
-    # pred_WPI <- mask(pred_WPI, sampleloc_extent2_pj)
+    # prediction 
+    print("make prediction")
+    pred <- predict(RSdata_valid, rf_model)
+    pred_WPI <- mask(pred, WPI_interpolate_pj$var1.pred)# 
     writeRaster(pred_WPI, file.path(raster_outRF_pred, paste0(model_name,"_pred.tif")), overwrite = TRUE)
 
     # breaks definded 
