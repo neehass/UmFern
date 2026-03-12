@@ -1,9 +1,0 @@
-Model: P_RF
-----------------------------------
-OOB MSE:  25680.442234
-OOB RMSE: 160.251185
-OOB R2:   0.808533
-Number of trees: 500
-Mtry: 2
-Min node size: 5
-
