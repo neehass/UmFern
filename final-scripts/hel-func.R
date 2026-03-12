@@ -1,4 +1,5 @@
 # help- functions
+library(lmodel2)
 
 # cloud mask 
 # Bit-Funktion

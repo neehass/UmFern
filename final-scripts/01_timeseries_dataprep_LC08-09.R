@@ -163,7 +163,9 @@ message(sprintf("Dauer: %02d:%02d:%05.2f (hh:mm:ss)", hours, minutes, seconds))
 
 # look at:  # https://search.r-project.org/CRAN/refmans/landsat/html/PIF.html
 
-# load alle raster un bercehne standardabweichung 
+# -------------------------------------------
+# # load alle raster  ----------------------------------
+# -------------------------------------------
 files <- list.files(data_crop_dir)
 parts <- strsplit(files, "_|\\.")
 years <- sapply(parts, `[`, 5)
@@ -176,13 +178,13 @@ list_ALLyears <- lapply(list_ALLyears, function(x) {x[[ !names(x) %in% c("Coasta
 plot(list_ALLyears[[1]]$Blue,
        main = paste(unique_years[1]))
 
-png(file.path(output, "exampleTimeseries2013-2025.png"), height = 800, width = 800)
-par(mfrow=c(5,2))
-for(y in 1:length(unique_years)){
-  plot(list_ALLyears[[y]]$Green,
-       main = paste(unique_years[y], "- Green"))
-}
-dev.off()
+# png(file.path(output, "exampleTimeseries2013-2025.png"), height = 800, width = 800)
+# par(mfrow=c(5,2))
+# for(y in 1:length(unique_years)){
+#   plot(list_ALLyears[[y]]$Green,
+#        main = paste(unique_years[y], "- Green"))
+# }
+# dev.off()
 
 # extent anpassen
 extents <- lapply(list_ALLyears, ext)
@@ -199,43 +201,47 @@ list_ALLyears_aligned <- lapply(list_ALLyears, function(r) {
   return(r)
 })
 
-png(file.path(output, "MASKIERT_smallestTimeseries2013-2025.png"), height = 800, width = 800)
-par(mfrow=c(5,2))
-for(y in 1:length(unique_years)){
-  plot(list_ALLyears_aligned[[y]]$Green,
-       main = paste(unique_years[y], "- Green"))
-}
-dev.off()
-names(list_ALLyears_aligned[[1]])
+# png(file.path(output, "MASKIERT_smallestTimeseries2013-2025.png"), height = 800, width = 800)
+# par(mfrow=c(5,2))
+# for(y in 1:length(unique_years)){
+#   plot(list_ALLyears_aligned[[y]]$Green,
+#        main = paste(unique_years[y], "- Green"))
+# }
+# dev.off()
+# names(list_ALLyears_aligned[[1]])
 
-# alle zusammen
-rasterALL <- rast(list_ALLyears_aligned)
-bands <- unique(names(rasterALL))
-n_bands <- length(bands)
-n_years <- length(unique_years)
+# # alle zusammen
+# rasterALL <- rast(list_ALLyears_aligned)
+# bands <- unique(names(rasterALL))
+# n_bands <- length(bands)
+# n_years <- length(unique_years)
 
-if (n_bands * n_years != nlyr(rasterALL)) {
-  stop("Layeranzahl stimmt nicht mit Bändern * Jahren überein!")
-}
+# if (n_bands * n_years != nlyr(rasterALL)) {
+#   stop("Layeranzahl stimmt nicht mit Bändern * Jahren überein!")
+# }
 
-gulf_shp_pj <- project(gulf_shp, crs(rasterALL))
-rasterALL_masked <- mask(rasterALL, gulf_shp_pj)
-names(rasterALL_masked)
-writeRaster(rasterALL_masked, file.path(data_pif, "MASKED_LAND_all_raster2013-2025_masked_smallest.tif"), overwrite=TRUE)
+# gulf_shp_pj <- project(gulf_shp, crs(rasterALL))
+# rasterALL_masked <- mask(rasterALL, gulf_shp_pj)
+# names(rasterALL_masked)
+# writeRaster(rasterALL_masked, file.path(data_pif, "MASKED_LAND_all_raster2013-2025_masked_smallest.tif"), overwrite=TRUE)
 
-layer_names <- unlist(lapply(unique_years, function(y) {
-  paste0(y, "_", bands)
-}))
-names(rasterALL) <- layer_names
-names(rasterALL) 
-writeRaster(rasterALL, file.path(data_pif, "all_raster2013-2025_masked_smallest.tif"), overwrite=TRUE)
+# layer_names <- unlist(lapply(unique_years, function(y) {
+#   paste0(y, "_", bands)
+# }))
+# names(rasterALL) <- layer_names
+# names(rasterALL) 
+# writeRaster(rasterALL, file.path(data_pif, "all_raster2013-2025_masked_smallest.tif"), overwrite=TRUE)
 
+# -------------------------------------------
+# Permanente Pixel ----------------------------------
+# -------------------------------------------
 rasterALL <- rast(file.path(data_pif, "all_raster2013-2025_masked_smallest.tif"))
 rasterALL_masked <- rast(file.path(data_pif, "MASKED_LAND_all_raster2013-2025_masked_smallest.tif"))
 
 # Standardabweichung über alle bänder 
 sd_raster <- app(rasterALL_masked, sd, na.rm = TRUE)
 col_fun <- colorRampPalette(c("white", "red"))
+
 png(file.path(output, "SD_smallestTimeseries2013-2025.png"), height = 800, width = 800)
 plot(sd_raster, col = col_fun(100000), plg = list(title = "SD 2013-2025"))
 dev.off()
@@ -243,6 +249,7 @@ dev.off()
 cv <- app(rasterALL_masked, function(x){
   sd(x, na.rm=TRUE) / mean(x, na.rm=TRUE)
 })
+
 png(file.path(output, "CV_smallestTimeseries2013-2025.png"), height = 800, width = 800)
 plot(cv, col = col_fun(10), plg = list(title = "CV 2013-2025"))
 dev.off()
@@ -261,19 +268,23 @@ pP_mask_cv <- cv <= threshold_cv
 plot(pP_mask_cv)
 
 pP_mask_sdCV <- pP_mask_sd & pP_mask_cv
-plot(pP_mask_sdCV)
+png(file.path(output, "PIF_CV_SD_Timeseries2013-2025.png"), height = 800, width = 800)
+plot(pP_mask_sdCV, main = "Permanent Pixel Mask (10% quantile CV & SD)")
+dev.off()
 
 writeRaster(pP_mask_sd, file.path(data_pif, "permanentPixel_sd.tif"), overwrite=TRUE)
 writeRaster(pP_mask_cv, file.path(data_pif, "permanentPixel_CV.tif"), overwrite=TRUE)
 writeRaster(pP_mask_sdCV, file.path(data_pif, "permanentPixel_sd_CV.tif"), overwrite=TRUE)
+pP_mask_sdCV <- rast(file.path(data_pif, "permanentPixel_sd_CV.tif"))
 
-# sd und cv pro band
+# sd und cv pro band ------------------------------------------
 bands_unique <- unique(names(rasterALL_masked))
 sd_per_band <- list()
 cv_per_band <- list()
 pP_mask_sdCV_perband <- list()
 
 for(b in bands_unique){
+  print(paste(b, "in", c(bands_unique)))
   # alle Bänder mit diesem Namen auswählen
   sel <- grep(paste0("^", b, "$"), names(rasterALL_masked))
   band_stack <- rasterALL_masked[[sel]]
@@ -285,7 +296,7 @@ for(b in bands_unique){
 }
 
 for(b in bands_unique){
-  
+  print(paste(b, "in", c(bands_unique)))
   # SD und CV für dieses Band
   sd_r <- sd_per_band[[b]]
   cv_r <- cv_per_band[[b]]
@@ -305,8 +316,11 @@ for(b in bands_unique){
   pP_mask_sdCV_perband[[b]] <- mask_sd & mask_cv
   
   # Optional: plotten
+  png(file.path(output, paste0(b, "_permanentPixel_sd_CV.png")), height = 800, width = 800)
   plot(pP_mask_sdCV_perband[[b]], main = paste("10% stabilste Pixel:", b))
-  writeRaster(pP_mask_sdCV_perband[[b]], file.path(data_pif, paste0(b, "_permanentPixel_sd_CV_2.tif")), overwrite=TRUE)
+  dev.off()
+  
+  writeRaster(pP_mask_sdCV_perband[[b]], file.path(data_pif, paste0(b, "_permanentPixel_sd_CV.tif")), overwrite=TRUE)
 }
 
 # -------------------------------------------
@@ -315,18 +329,17 @@ for(b in bands_unique){
 ref_scene <- list_ALLyears_aligned[[which(unique_years == "2013")]] # 2013
 # windows()
 plot(ref_scene)
+gulf_shp_pj <- project(gulf_shp, crs(ref_scene))
 
-# normieren ---------
-library(lmodel2)
+# normieren mit library(lmodel2) ---------
 norm_ALLyears_list_band <- vector("list", length(list_ALLyears_aligned))
 bandnames <- names(list_ALLyears_aligned[[1]])
 
 for(i in seq_along(list_ALLyears_aligned)) {
-
+  print(paste(i, "von", length(list_ALLyears_aligned)))
   scene <- list_ALLyears_aligned[[i]]
 
  # Maskierete Szene mit PIF
- 
  scene_norm_bands <- list()
   for(b in seq_along(bandnames)) {
 
@@ -406,6 +419,8 @@ for(i in seq_along(norm_ALLyears_list_band_water)){
     overwrite = TRUE
   )
 }
+
+### END #####################################################
 
 # # -------------------------------------------
 # # normiere Alle szenen anhand 2013 -------------------------
