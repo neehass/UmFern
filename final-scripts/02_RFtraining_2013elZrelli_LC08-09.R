@@ -16,7 +16,7 @@ getwd()
 setwd("./Phosphate")
 source('./R-scripts/hel-func.R', chdir = TRUE)
 
-output <- "./R-scripts/2_2013NORM_Valid_elZrelli-outputs_LC08-09"
+output <- "./R-scripts/02_2013NORM_Valid_elZrelli-outputs_LC08-09"
 dir.create(output)
 
 data_elZrelli_shp <- "./elZrelli2018_shp"
@@ -24,7 +24,8 @@ data_elZrelli <- "./elZrelli2018"
 
 data_pif <- "./landsat-SEPTEMBER_PIF_LC08-09"
 
-data_dir_valid_masekd <- "./landsat2013-masked"
+data_dir_valid_masekd <- "./landsat-interpolation"
+dir.create(data_dir_valid_masekd)
 
 # VAlidation Chla Reana
 data_CHla <- "./NOAAMSL12_chla/chlora/monthly/WW00"
@@ -57,8 +58,8 @@ gulf_shp <- tunisia_shp[(tunisia_shp$name == "Gabès") | (tunisia_shp$name == "S
 # ---------------------------------------------------------
 # load samplelocation data ------------------
 # ---------------------------------------------------------
-# sampleloc_extent <- vect(file.path(data_elZrelli_shp, "elZrelli2018_sampleloc_EXTENT.shp"))
-# sampleloc_extent <- erase(sampleloc_extent, gulf_shp)
+sampleloc_extent_interpol <- vect(file.path(data_elZrelli_shp, "elZrelli2018_sampleloc_SMALL-Interpol.shp"))
+sampleloc_extent_interpol <- erase(sampleloc_extent_interpol, gulf_shp)
 
 sampleloc_extent2 <- vect(file.path(data_elZrelli_shp, "elZrelli2018_sampleloc_EXTENT2.shp"))
 sampleloc_extent2 <- erase(sampleloc_extent2, gulf_shp)
@@ -68,7 +69,7 @@ sampleloc_extent4_land <- vect(file.path(data_elZrelli_shp, "elZrelli2018_sample
 sampleloc_extent4_land <- erase(sampleloc_extent4_land, gulf_shp)
 
 # plot industrie loc and sample locs
-# plot(sampleloc_extent4_land)
+# plot(sampleloc_extent_interpol)
 # lines(gulf_shp, add = TRUE, col = "darkgrey", alpha = 0.2)
 # points(sampleLoc_points, col = "cyan")
 # points(ind_loc, col = "red", pch = 15)
@@ -115,7 +116,7 @@ plot(valid_SEP_Extent)
 # # crop sample loc extent -----
 # sampleloc_points_pj <- project(sampleLoc_points, crs(valid_SEP_Extent))
 
-# buffer <- buffer(sampleloc_points_pj, width = 200) # meter
+buffer <- buffer(sampleloc_points_pj, width = 200) # meter
 # valid_SEP_points <- mask(valid_SEP_Extent, buffer)
 # valid_SEP_points <- crop(valid_SEP_points, valid_SEP_Extent)
 # plot(valid_SEP_points$Blue)
@@ -127,7 +128,6 @@ plot(valid_SEP_Extent)
 # valid_SEP_points <- rast(file.path(data_pif,"NORM13_perBand_POINTS_valid_sampleLoc_SEP2013.tif"))
 valid_SEP_points <- rast(file.path(data_pif,"2_NORM13_perBand_POINTS_valid_sampleLoc_SEP2013.tif"))
 
-sampleloc_extent_pj <- project(sampleloc_extent, crs(valid_SEP_Extent))
 sampleloc_points_pj <- project(sampleLoc_points, crs(valid_SEP_Extent))
 indloc_pj <- project(vect(matrix(ind_loc, ncol=2), crs="EPSG:4326"), crs(valid_SEP_Extent))
 gulf_shp_pj <- project(gulf_shp, crs(valid_SEP_Extent))
@@ -724,20 +724,22 @@ ggsave(file.path(output, "heavymetal_INDEX.png"), p_FP_IDX, height = 6, width = 
 # Interpolate
 
 # # auf Ausdehnung der Maske zuschneiden
-# mask <- project(sampleloc_extent2, crs(idw_out_rast))
+# plot(sampleloc_extent_interpol)
 
-# wpi_interpolate <- func_interpoltate(waterPolIndex, VAR = "WPi", mask, name = "WPi_interpolate", data_dir_valid_masekd)
-# plot(p_interpolate)
+# wpi_interpolate_forward <- func_interpolation_forward(heavymetal = waterPolIndex, VAR = "WPi", maske = sampleloc_extent_interpol, 
+#         name = "WPi_interpolate_forwarde", data_dir_valid_masekd)
+
+# wpi_interpolate <- func_interpoltate(waterPolIndex, VAR = "WPi", maske = sampleloc_extent_interpol, name = "WPi_interpolate", data_dir_valid_masekd)
 # brks <- c( 0,1,2,3,4, 6, 10, 15, 30)#seq(0.3, 20,  by = 4)
 
-# png(file.path(output,  paste0("wpi_interpolate",".png")), height = 1000, width = 1000)
+# png(file.path(output,  paste0("wpi_interpolate.png")), height = 1000, width = 1000)
 # plot(wpi_interpolate$var1.pred, plg = list(title = "WPI"), , main = "WPI", breaks = brks)
 # plot(gulf_shp_pj, add = TRUE)
 # points(sampleloc_points_pj, col = "red")
 # points(indloc_pj, col = "black", pch = 15, cex = 1)
 # dev.off()
 
-# F_interpolate <- func_interpoltate(heavymetal, VAR = "F_mean", mask, name = "F_interpolate", data_dir_valid_masekd)
+# F_interpolate <- func_interpoltate(heavymetal, VAR = "F_mean",  maske = sampleloc_extent_interpol , name = "F_interpolate", data_dir_valid_masekd)
 # brks <- c( 0,0.3,5,10,15, 20)#seq(0.3, 20,  by = 4)
 # brks <- c( 0,1,2,3,4,5,10,15,20)
 # png(file.path(output,  paste0("F_interpolate",".png")), height = 1000, width = 1000)
@@ -750,7 +752,7 @@ ggsave(file.path(output, "heavymetal_INDEX.png"), p_FP_IDX, height = 6, width = 
 
 # lm_data_p <- heavymetal
 # lm_data_p$P_mean[is.na(lm_data_p$P_mean)] <- 130
-# p_interpolate <- func_interpoltate(lm_data_p, VAR = "P_mean", mask, name = "P_interpolate", data_dir_valid_masekd)
+# p_interpolate <- func_interpoltate(lm_data_p, VAR = "P_mean", maske = sampleloc_extent_interpol, name = "P_interpolate", data_dir_valid_masekd)
 # plot(p_interpolate)
 # brks <- c( 0, 0.5,1,2,3,4, 5, 6)#seq(0.3, 20,  by = 4)
 
@@ -763,7 +765,7 @@ ggsave(file.path(output, "heavymetal_INDEX.png"), p_FP_IDX, height = 6, width = 
 # points(indloc_pj, col = "black", pch = 15, cex = 1)
 # dev.off()
 
-# Pb_interpolate <- func_interpoltate(heavymetal, VAR = "Pb_mean", mask, name = "Pb_interpolate", data_dir_valid_masekd)
+# Pb_interpolate <- func_interpoltate(heavymetal, VAR = "Pb_mean", maske = sampleloc_extent_interpol, name = "Pb_interpolate", data_dir_valid_masekd)
 # brks <- c(0,0.2,0.4,0.6,0.8,1)
 # png(file.path(output,  paste0("Pb_interpolate",".png")), height = 1000, width = 1000)
 # plot(Pb_interpolate$var1.pred, plg = list(title = "[μg/l]"), 
@@ -773,7 +775,7 @@ ggsave(file.path(output, "heavymetal_INDEX.png"), p_FP_IDX, height = 6, width = 
 # points(indloc_pj, col = "black", pch = 15, cex = 1)
 # dev.off()
 
-# Zn_interpolate <- func_interpoltate(heavymetal, VAR = "Zn_mean", mask, name = "Zn_interpolate", data_dir_valid_masekd)
+# Zn_interpolate <- func_interpoltate(heavymetal, VAR = "Zn_mean", maske = sampleloc_extent_interpol, name = "Zn_interpolate", data_dir_valid_masekd)
 # brks <- c(5,8,10,15,20, 25)
 # png(file.path(output,  paste0("Zn_interpolate",".png")), height = 1000, width = 1000)
 # plot(Zn_interpolate$var1.pred, plg = list(title = "[μg/l]"), 
@@ -783,7 +785,7 @@ ggsave(file.path(output, "heavymetal_INDEX.png"), p_FP_IDX, height = 6, width = 
 # points(indloc_pj, col = "black", pch = 15, cex = 1)
 # dev.off()
 
-# Cu_interpolate <- func_interpoltate(heavymetal, VAR = "Cu_mean", mask, name = "Cu_interpolate", data_dir_valid_masekd)
+# Cu_interpolate <- func_interpoltate(heavymetal, VAR = "Cu_mean", maske = sampleloc_extent_interpol, name = "Cu_interpolate", data_dir_valid_masekd)
 # brks <- c(1,2,3,4,5,6,7,8)
 # png(file.path(output,  paste0("Cu_interpolate",".png")), height = 1000, width = 1000)
 # plot(Cu_interpolate$var1.pred, plg = list(title = "[μg/l]"), 

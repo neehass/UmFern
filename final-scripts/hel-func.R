@@ -276,6 +276,39 @@ func_mean_raster <- function(raster) {
     return(mean_raster)
 }
 
+# mean über ratser
+func_median_raster <- function(raster) {
+  
+    mean_band <- list()
+    common_bands <- Reduce(intersect, lapply(raster, function(x) names(x)))
+    print(paste("Common bands:", paste(common_bands, collapse = ", ")))
+
+    # ref <- raster[[2]] # 2013
+
+    # raster_aligned <- lapply(raster, function(r) {
+    # r <- resample(r, ref)   # Pixelgröße angleichen
+    # r <- crop(r, ext(ref))  # auf Ref-Extent zuschneiden
+    # return(r)
+    # })
+
+    for(b in common_bands){
+
+        # Extrahiere Band aus allen Raster
+        band_list <- lapply(raster, function(x) x[[b]])
+
+        # Stack nur gültige Raster
+        band_list <- band_list[!sapply(band_list, is.null)]
+        band_stack <- do.call(c, band_list)
+
+        mean_band[[b]] <- app(band_stack, fun = median, na.rm = TRUE)
+    }
+
+    mean_raster <- rast(mean_band)
+    names(mean_raster) <- common_bands
+   
+    return(mean_raster)
+}
+
 # mean per industry location
 func_mean_loc <- function(raster) {
     mean_perloc <-list()
@@ -635,7 +668,7 @@ library(sf)
 library(gstat)
 library(sp)
 
-func_interpoltate <- function(heavymetal, VAR, mask, name, data_dir_valid_masekd){
+func_interpoltate <- function(heavymetal, VAR, maske, name, data_dir_valid_masekd){
 
   F_data <- heavymetal[, c(VAR, "Latitude", "Longitude")]
 
@@ -668,11 +701,51 @@ func_interpoltate <- function(heavymetal, VAR, mask, name, data_dir_valid_masekd
   plot(idw_out_rast)
 
   # Maskieren
-  idw_out_rast_mask <- mask(idw_out_rast, mask)
+    mask_pj <- project(maske, crs(idw_out_rast))
+  idw_out_rast_mask <- mask(idw_out_rast, mask_pj)
   writeRaster(idw_out_rast_mask, file.path(data_dir_valid_masekd, paste0(name,".tif")) , overwrite = TRUE)
 
   return(idw_out_rast_mask)
 }
+
+func_interpolation_forward <- function(heavymetal, VAR, maske, name, data_dir_valid_masekd){
+
+  F_data <- heavymetal[, c(VAR, "Latitude", "Longitude")]
+
+    # Vorwärtsrichtung definieren (z.B. Ost = x größer als aktueller Punkt)
+    F_data_forward <- F_data[F_data$Longitude >= min(F_data$Longitude), ]
+
+    coordinates(F_data_forward) <- ~Longitude + Latitude
+    proj4string(F_data_forward) <- CRS("+proj=longlat +datum=WGS84")
+
+    # Optional: in UTM projizieren für metrische Abstände
+    F_data_utm <- spTransform(F_data_forward, CRS("+proj=utm +zone=32 +datum=WGS84"))
+
+    # Schritt 2: Rastergrid erzeugen
+    grid <- spsample(F_data_utm, type = "regular", cellsize = 500)  # 5 km Raster
+    grid <- SpatialPixels(grid)  # Grid für predict
+
+    # IDW nur auf diesen Punkten
+    gs_forward <- gstat(
+    formula = as.formula(paste(VAR, "~ 1")),
+    locations = F_data_utm,
+    nmax = 20,
+    set = list(idp = 2)
+    )
+
+    idw_out_forward <- predict(gs_forward, grid)
+    idw_out_rast <- rast(idw_out_forward)
+    # plot(idw_out_forward)
+
+  # Maskieren
+  mask_pj <- project(maske, crs(idw_out_rast))
+  idw_out_rast_mask <- mask(idw_out_rast, mask_pj)
+  plot(idw_out_rast_mask)
+  writeRaster(idw_out_rast_mask, file.path(data_dir_valid_masekd, paste0(name,".tif")) , overwrite = TRUE)
+
+  return(idw_out_rast_mask)
+}
+
 library(ggplot2)
 library(dplyr)
 

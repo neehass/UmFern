@@ -10,9 +10,9 @@ library(ranger)
 
 getwd()
 setwd("./Phosphate")
-source('./R-scripts/hel-func.R', chdir = TRUE)
+source('./R-scripts/final-scripts/hel-func.R', chdir = TRUE)
 
-output <- "./R-scripts/2_timeseries-outputs_LC08/RF_NORM"
+output <- "./R-scripts/output/timeseries-outputs_LC08/RF_NORM"
 dir.create(output, recursive = TRUE)
 
 data_crop_dir <- "./landsat-SEPTEMBER_PIF_LC08-09"

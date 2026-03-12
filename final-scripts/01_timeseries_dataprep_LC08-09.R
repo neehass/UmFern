@@ -1,5 +1,5 @@
-# september timeseries vorbereiten
-# elZrelli sep 2013 is vaildationdata
+# timeseries vorbereiten
+# elZrelli is vaildation data, Messungen September 2013
 
 # packages
 library(terra)
@@ -10,21 +10,18 @@ library(mapview)
 
 getwd()
 setwd("./Phosphate")
-source('./R-scripts/hel-func.R', chdir = TRUE)
+source('./R-scripts/final-scripts/hel-func.R', chdir = TRUE)
 
-output <- "./R-scripts/timeseries-outputs_LC08"
+output <- "./R-scripts/output/01_timeseries2013_2025_LC08"
 dir.create(output)
 
 data_dir <- "./landsat-SEPTEMBER"
-# data_crop_dir <- "./landsat-SEPTEMBER_masked"
-data_crop_dir <- "./landsat-SEPTEMBER_land_LC08-09"
+data_crop_dir <- "./final_landsat-SEPTEMBER_land_LC08-09"
 dir.create(data_crop_dir)
-data_pif <- "./landsat-SEPTEMBER_PIF_LC08-09"
+data_pif <- "./final_landsat-SEPTEMBER_PIF_LC08-09"
 dir.create(data_pif)
 
-data_dir_cloudmask <- "./landsat-SEPTEMBER_cloudmask"
-dir.create(data_dir_cloudmask)
-
+# Messdaten SEp 2013
 data_elZrelli_shp <- "./elZrelli2018_shp"
 data_elZrelli <- "./elZrelli2018"
 
@@ -74,6 +71,7 @@ parts <- parts[idx]
 satNR <- unique(sapply(parts, `[`, 1))
 dates <- sapply(parts, `[`, 4)
 unique_dates <- unique(dates)
+print(sort(unique_dates))
 
 # band overview:
 satNR_bands <- list(
@@ -84,54 +82,54 @@ satNR_bands <- list(
 )
 
 # ---------------------------------------------------------
-# mean per year in September ------------------
+# medain per year in autum (Aug-Nov) ------------------
 # --------------------------------------------------------- 
 years <- 2013:2025 
-years <- 2013 # [1] "ALL" [1] "LC08_L2SP_191036_20130812" "LC08_L2SP_191036_20130929" [3] "LC08_L2SP_191036_20131031" "LC08_L2SP_191036_20131116"
 # windows()
 y <- 1
 year <- years[y] 
 print(year)
-raster_yearSEP <- func_timestep_sel(year, files_band, satNR_bands, unique_dates, data_dir, time = "ALL") #, staNR_exclude = staNR_exclude)
+raster_year <- func_timestep_sel(year, files_band, satNR_bands, unique_dates, data_dir, time = "ALL") #, staNR_exclude = staNR_exclude)
 
-# SEPTEMBER
+# Autum
 for(y in 1:length(years)){
     year <- years[y] 
-    # raster_name <- paste0("mean_raster_yearSEP_masked", "_", year, ".tif")
-    raster_name <- paste0("2_mean_raster_yearSEP_land", "_", year, ".tif")
+    # raster_name <- paste0("median_raster_year_masked", "_", year, ".tif")
+    raster_name <- paste0("median_raster_year_land", "_", year, ".tif")
     print(year)
 
-    raster_yearSEP <- func_timestep_sel(year, files_band, satNR_bands, unique_dates, data_dir, time = "ALL")
+    raster_year <- func_timestep_sel(year, files_band, satNR_bands, unique_dates, data_dir, time = "ALL")
 
-    if(class(raster_yearSEP[[1]]) == "SpatRaster") { # nur wenn szene existiert 
+    if(class(raster_year[[1]]) == "SpatRaster") { # nur wenn szene existiert 
         # mask cloud and extent 
-        raster_yearSEP_masked <- func_mask_cloud_EXTENT(raster_yearSEP, data_dir, sampleloc_extent4_land, gabes_hafen) # sampleloc_extent3)
+        raster_year_masked <- func_mask_cloud_EXTENT(raster_year, data_dir, sampleloc_extent4_land, gabes_hafen) # sampleloc_extent3)
 
-        idx0 <- sapply(raster_yearSEP_masked, function(x) {
+        idx0 <- sapply(raster_year_masked, function(x) {
         class(x) == "numeric" # numeric und damit 0, dh zu hohen Wolken Anteil in HAfen region 
         })
 
-        raster_yearSEP_masked_clean <- raster_yearSEP_masked[!idx0]
+        raster_year_masked_clean <- raster_year_masked[!idx0]
 
         # mean wenn mehere scenen verfügabr
-        if(length(raster_yearSEP_masked_clean) != 0) {
+        if(length(raster_year_masked_clean) != 0) {
             
-            if(length(raster_yearSEP_masked) > 1){
-                print(paste(length(raster_yearSEP_masked), "scenes"))
-                mean_raster_yearSEP_masked <- func_mean_raster(raster_yearSEP_masked_clean)
-                plot(mean_raster_yearSEP_masked)
+            if(length(raster_year_masked) > 1){
+                print(paste(length(raster_year_masked), "scenes"))
+                # median_raster_year_masked <- func_mean_raster(raster_year_masked_clean)
+                median_raster_year_masked <- func_median_raster(raster_year_masked_clean)
+                plot(median_raster_year_masked)
 
                 # save
                 print(paste("save", year))
-                writeRaster(mean_raster_yearSEP_masked, file.path(data_crop_dir, raster_name), overwrite=TRUE)
+                writeRaster(median_raster_year_masked, file.path(data_crop_dir, raster_name), overwrite=TRUE)
             } else { 
                 print("just one scene")
-                mean_raster_yearSEP_masked <- raster_yearSEP_masked[[1]]
-                plot(mean_raster_yearSEP_masked)
+                median_raster_year_masked <- raster_year_masked[[1]]
+                plot(median_raster_year_masked)
 
                 # save
                 print(paste("save", year))
-                writeRaster(mean_raster_yearSEP_masked, file.path(data_crop_dir, raster_name), overwrite=TRUE)
+                writeRaster(median_raster_year_masked, file.path(data_crop_dir, raster_name), overwrite=TRUE)
             }
         } else {
             print("Szene ist NUlL - Woleken Anteil zu hoch") 
@@ -166,18 +164,10 @@ print(unique_years) # von 2013 2025
 list_ALLyears <- lapply(files, function(x){rast(file.path(data_crop_dir, x))})
 list_ALLyears <- lapply(list_ALLyears, function(x) {x[[ !names(x) %in% c("CoastalAerosol") ]]})
 
-# # mit 2013 ALL data !
-# list_ALLyears <- lapply(files[3:length(files)], function(x){rast(file.path(data_crop_dir, x))})
-# year2013 <- rast(file.path(data_crop_dir, "2_mean_raster_yearSEP_land_2013.tif"))
-# list_ALLyears <- c(list(year2013), list_ALLyears)
-list_ALLyears <- lapply(list_ALLyears, function(x) {x[[ !names(x) %in% c("CoastalAerosol") ]]})
-# unique_years <- unique_years[2:length(unique_years)]
-
 plot(list_ALLyears[[1]]$Blue,
        main = paste(unique_years[1]))
 
-# png(file.path(output, "exampleTimeseries2013-2025.png"), height = 800, width = 800)
-png(file.path(output, "2_exampleTimeseries2013-2025.png"), height = 800, width = 800)
+png(file.path(output, "exampleTimeseries2013-2025.png"), height = 800, width = 800)
 par(mfrow=c(5,2))
 for(y in 1:length(unique_years)){
   plot(list_ALLyears[[y]]$Green,
@@ -200,43 +190,39 @@ list_ALLyears_aligned <- lapply(list_ALLyears, function(r) {
   return(r)
 })
 
-# # png(file.path(output, "MASKIERT_smallestTimeseries2013-2025.png"), height = 800, width = 800)
-# png(file.path(output, "2_MASKIERT_smallestTimeseries2013-2025.png"), height = 800, width = 800)
-# par(mfrow=c(5,2))
-# for(y in 1:length(unique_years)){
-#   plot(list_ALLyears_aligned[[y]]$Green,
-#        main = paste(unique_years[y], "- Green"))
-# }
-# dev.off()
-# names(list_ALLyears_aligned[[1]])
+png(file.path(output, "MASKIERT_smallestTimeseries2013-2025.png"), height = 800, width = 800)
+par(mfrow=c(5,2))
+for(y in 1:length(unique_years)){
+  plot(list_ALLyears_aligned[[y]]$Green,
+       main = paste(unique_years[y], "- Green"))
+}
+dev.off()
+names(list_ALLyears_aligned[[1]])
 
-# # alle zusammen
-# rasterALL <- rast(list_ALLyears_aligned)
-# bands <- unique(names(rasterALL))
-# n_bands <- length(bands)
-# n_years <- length(unique_years)
+# alle zusammen
+rasterALL <- rast(list_ALLyears_aligned)
+bands <- unique(names(rasterALL))
+n_bands <- length(bands)
+n_years <- length(unique_years)
 
-# if (n_bands * n_years != nlyr(rasterALL)) {
-#   stop("Layeranzahl stimmt nicht mit Bändern * Jahren überein!")
-# }
+if (n_bands * n_years != nlyr(rasterALL)) {
+  stop("Layeranzahl stimmt nicht mit Bändern * Jahren überein!")
+}
 
-# gulf_shp_pj <- project(gulf_shp, crs(rasterALL))
-# rasterALL_masked <- mask(rasterALL, gulf_shp_pj)
-# names(rasterALL_masked)
-# writeRaster(rasterALL_masked, file.path(data_pif, "2_MASKED_LAND_all_raster2013-2025_masked_smallest.tif"), overwrite=TRUE)
+gulf_shp_pj <- project(gulf_shp, crs(rasterALL))
+rasterALL_masked <- mask(rasterALL, gulf_shp_pj)
+names(rasterALL_masked)
+writeRaster(rasterALL_masked, file.path(data_pif, "MASKED_LAND_all_raster2013-2025_masked_smallest.tif"), overwrite=TRUE)
 
-# layer_names <- unlist(lapply(unique_years, function(y) {
-#   paste0(y, "_", bands)
-# }))
-# names(rasterALL) <- layer_names
-# names(rasterALL) 
-# writeRaster(rasterALL, file.path(data_pif, "2_all_raster2013-2025_masked_smallest.tif"), overwrite=TRUE)
+layer_names <- unlist(lapply(unique_years, function(y) {
+  paste0(y, "_", bands)
+}))
+names(rasterALL) <- layer_names
+names(rasterALL) 
+writeRaster(rasterALL, file.path(data_pif, "all_raster2013-2025_masked_smallest.tif"), overwrite=TRUE)
 
-# rasterALL <- rast(file.path(data_pif, "all_raster2013-2025_masked_smallest.tif"))
-# rasterALL_masked <- rast(file.path(data_pif, "MASKED_LAND_all_raster2013-2025_masked_smallest.tif"))
-
-rasterALL <- rast(file.path(data_pif, "2_all_raster2013-2025_masked_smallest.tif"))
-rasterALL_masked <- rast(file.path(data_pif, "2_MASKED_LAND_all_raster2013-2025_masked_smallest.tif"))
+rasterALL <- rast(file.path(data_pif, "all_raster2013-2025_masked_smallest.tif"))
+rasterALL_masked <- rast(file.path(data_pif, "MASKED_LAND_all_raster2013-2025_masked_smallest.tif"))
 
 # Standardabweichung über alle bänder 
 sd_raster <- app(rasterALL_masked, sd, na.rm = TRUE)
@@ -248,7 +234,7 @@ dev.off()
 cv <- app(rasterALL_masked, function(x){
   sd(x, na.rm=TRUE) / mean(x, na.rm=TRUE)
 })
-png(file.path(output, "2_CV_smallestTimeseries2013-2025.png"), height = 800, width = 800)
+png(file.path(output, "CV_smallestTimeseries2013-2025.png"), height = 800, width = 800)
 plot(cv, col = col_fun(10), plg = list(title = "CV 2013-2025"))
 dev.off()
 
@@ -368,7 +354,7 @@ for(i in seq_along(list_ALLyears_aligned)) {
   names(scene_norm) <- bandnames
 
   # speichern
-  writeRaster(scene_norm, file.path(data_pif, paste0("2_NORMIERT2013_proBand_",unique_years[i],"_permanentPixel_sd_CV.tif")), overwrite=TRUE)
+  writeRaster(scene_norm, file.path(data_pif, paste0("NORMIERT2013_proBand_",unique_years[i],"_permanentPixel_sd_CV.tif")), overwrite=TRUE)
   norm_ALLyears_list_band[[i]] <- scene_norm
 
   # Speicher freigeben
@@ -377,12 +363,12 @@ for(i in seq_along(list_ALLyears_aligned)) {
 }
 
 # norm_files <- list.files(data_pif, pattern = "^NORMIERT2013_proBand")
-norm_files <- list.files(data_pif, pattern = "^2_NORMIERT2013_proBand")
+norm_files <- list.files(data_pif, pattern = "^NORMIERT2013_proBand")
 norm_ALLyears_list_band <- lapply(norm_files, function(x){rast(file.path(data_pif, x))})
 
 # windows()
 # plot(norm_ALLyears_list_band[[1]])
-norm_dir <- file.path(output, "normiert_proBAND_sd_CV_2")
+norm_dir <- file.path(output, "normiert_proBAND_sd_CV")
 dir.create(norm_dir)
 for(b in seq_along(bandnames)) {
     png(file.path(norm_dir, paste0(bandnames[b],"_NORMIERT2013_proBand_pP_smallestTimeseries2013-2025_2.png")), height = 800, width = 800)
@@ -407,7 +393,7 @@ for(i in seq_along(norm_ALLyears_list_band_water)){
   x <- norm_ALLyears_list_band_water[[i]]
   writeRaster(
     x,
-    file.path(data_pif, paste0("2_WATER_NORMIERT2013_proBand_", unique_years[i], "_permanentPixel_sd_CV.tif")),
+    file.path(data_pif, paste0("WATER_NORMIERT2013_proBand_", unique_years[i], "_permanentPixel_sd_CV.tif")),
     overwrite = TRUE
   )
 }
