@@ -112,12 +112,13 @@ func_mask_cloud_EXTENT <- function(raster, data_dir, sampleloc_extent, gabes_haf
         qa <- rast(file.path(data_dir, paste0(name,"_QA_PIXEL.TIF")))
         # plot(qa)
 
-        cloud  <- get_bit(qa, 1)
-        cloud  <- get_bit(qa, 2)
+        # https://www.usgs.gov/landsat-missions/landsat-collection-2-quality-assessment-bands
+        dilatedclouds  <- get_bit(qa, 1) # erkannte Wolken künstlich vergrößert werden, um unsichere Pixel am Rand der Wolken ebenfalls zu maskieren.
+        cirrus  <- get_bit(qa, 2)
         cloud  <- get_bit(qa, 3)
         shadow <- get_bit(qa, 4)
 
-        cloud_mask <- cloud | shadow 
+        cloud_mask <- cloud | shadow | cirrus | dilatedclouds
         # plot(cloud_mask)
 
         if(!is.null(gabes_hafen)){
