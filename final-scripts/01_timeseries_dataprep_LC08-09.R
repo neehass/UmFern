@@ -94,6 +94,7 @@ year <- years[y]
 print(year)
 raster_year <- func_timestep_sel(year, files_band, satNR_bands, unique_dates, data_dir, time = "ALL") #, staNR_exclude = staNR_exclude)
 
+years <- 2013
 # Autum
 start <- Sys.time()
 for(y in 1:length(years)){
@@ -106,7 +107,8 @@ for(y in 1:length(years)){
 
     if(class(raster_year[[1]]) == "SpatRaster") { # nur wenn szene existiert 
         # mask cloud and extent 
-        raster_year_masked <- func_mask_cloud_EXTENT(raster_year, data_dir, sampleloc_extent4_land, gabes_hafen) # sampleloc_extent3)
+        raster_year_masked <- func_mask_cloud_EXTENT(raster_year, data_dir, 
+                sampleloc_extent4_land, gabes_hafen) # nur für 2013 ohne Hafen Region, sonst zu wenig pixel # sampleloc_extent3)
 
         idx0 <- sapply(raster_year_masked, function(x) {
         class(x) == "numeric" # numeric und damit 0, dh zu hohen Wolken Anteil in HAfen region 
