@@ -1041,6 +1041,7 @@ func_RF_ranger_class <- function(dat_interpolate, RSdata_valid, model_name, outp
 
     # breaks definded 
     if(unique(sapply(strsplit(model_name, "_"), `[`, 1)) == "P"){ # einheit von ym/l zu mg/l
+        print("P")
         pred_WPI <- pred_WPI/1000
         WPI_interpolate_pj[[1]] <- WPI_interpolate_pj[[1]] /1000
     }

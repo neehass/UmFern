@@ -821,6 +821,7 @@ RF_P <- func_RF_ranger(P_interpolate, RSdata_valid, model_name = "P_RF",
                 brks = brks, unite = unite, labs)
 
 # Random Forest KLASSIFIKATION für phosphor ----
+# hier trit fehler auf , funktioniert nicht 
 rcl <- matrix(c(-Inf, 0.1, 1, #min, max, group
   0.1, 2, 2,
   2, 3, 3,
