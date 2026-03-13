@@ -94,22 +94,27 @@ year <- years[y]
 print(year)
 raster_year <- func_timestep_sel(year, files_band, satNR_bands, unique_dates, data_dir, time = "ALL") #, staNR_exclude = staNR_exclude)
 
-years <- 2013
+# years <- 2013
 # Autum
 start <- Sys.time()
 for(y in 1:length(years)){
     year <- years[y] 
-    # raster_name <- paste0("median_raster_year_masked", "_", year, ".tif")
-    raster_name <- paste0("median_raster_year_land", "_", year, ".tif")
+    # raster_name <- paste0("median_raster_year_land", "_", year, ".tif")
+    raster_name <- paste0("mean_raster_year_land", "_", year, ".tif")
     print(year)
 
     raster_year <- func_timestep_sel(year, files_band, satNR_bands, unique_dates, data_dir, time = "ALL")
 
     if(class(raster_year[[1]]) == "SpatRaster") { # nur wenn szene existiert 
         # mask cloud and extent 
-        raster_year_masked <- func_mask_cloud_EXTENT(raster_year, data_dir, 
-                sampleloc_extent4_land, gabes_hafen) # nur für 2013 ohne Hafen Region, sonst zu wenig pixel # sampleloc_extent3)
-
+        if(year == 2013){ # nur für 2013 ohne Hafen Region, sonst zu wenig pixel
+           raster_year_masked <- func_mask_cloud_EXTENT(raster_year, data_dir, 
+                sampleloc_extent4_land)
+        } else {
+          raster_year_masked <- func_mask_cloud_EXTENT(raster_year, data_dir, 
+                sampleloc_extent4_land, gabes_hafen)
+        }
+         
         idx0 <- sapply(raster_year_masked, function(x) {
         class(x) == "numeric" # numeric und damit 0, dh zu hohen Wolken Anteil in HAfen region 
         })
@@ -121,8 +126,8 @@ for(y in 1:length(years)){
             
             if(length(raster_year_masked) > 1){
                 print(paste(length(raster_year_masked), "scenes"))
-                # median_raster_year_masked <- func_mean_raster(raster_year_masked_clean)
-                median_raster_year_masked <- func_median_raster(raster_year_masked_clean)
+                median_raster_year_masked <- func_mean_raster(raster_year_masked_clean)
+                # median_raster_year_masked <- func_median_raster(raster_year_masked_clean)
                 plot(median_raster_year_masked)
 
                 # save
@@ -168,7 +173,7 @@ message(sprintf("Dauer: %02d:%02d:%05.2f (hh:mm:ss)", hours, minutes, seconds))
 # -------------------------------------------
 # # load alle raster  ----------------------------------
 # -------------------------------------------
-files <- list.files(data_crop_dir)
+files <- list.files(data_crop_dir, pattern = "^mean")
 parts <- strsplit(files, "_|\\.")
 years <- sapply(parts, `[`, 5)
 unique_years <- unique(years)

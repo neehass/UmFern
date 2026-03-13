@@ -46,6 +46,8 @@ gulf_shp <- tunisia_shp[(tunisia_shp$name == "Gabès") | (tunisia_shp$name == "S
 # ---------------------------------------------------------
 sampleloc_extent3 <- vect(file.path(data_elZrelli_shp, "elZrelli2018_sampleloc_EXTENT-Skhira.shp"))
 sampleloc_extent3 <- erase(sampleloc_extent3, gulf_shp)
+sampleloc_extent4_land <- vect(file.path(data_elZrelli_shp, "elZrelli2018_sampleloc_EXTENT4_land.shp"))
+sampleloc_extent4_land <- erase(sampleloc_extent4_land, gulf_shp)
 
 # plot industrie loc and sample locs
 # plot(sampleloc_extent3)
@@ -94,7 +96,7 @@ dir.create(folder_PRED_WPI)
 
 rf_model_WPI_RF$forest$independent.variable.name
 
-#all_pred_WPI <- func_pred_RF(raster_years, rf_model_WPI_RF, sampleloc_extent3, outpur_dir = folder_PRED_WPI)
+#all_pred_WPI <- func_pred_RF(raster_years, rf_model_WPI_RF, sampleloc_extent4_land, outpur_dir = folder_PRED_WPI)
 all_pred_WPI <- lapply(list.files(folder_PRED_WPI), function(x){rast(file.path(folder_PRED_WPI, x))})
 
 brks <- c( 0,1,2,3,4, 6, 10, 15, 30)#seq(0.3, 20,  by = 4)
@@ -116,7 +118,7 @@ dir.create(folder_PRED_WPI_class)
 
 # rf_model_WPI_RF_CLASS$forest$independent.variable.names # variable names
 
-all_pred_WPI_Class <- func_pred_RF(raster_years, rf_model_WPI_RF_CLASS, sampleloc_extent3, outpur_dir = folder_PRED_WPI_class)
+all_pred_WPI_Class <- func_pred_RF(raster_years, rf_model_WPI_RF_CLASS, sampleloc_extent4_land, outpur_dir = folder_PRED_WPI_class)
 
 labs <- c("Not affected", "Slightly affected","Moderately affected","Strongly affected","Seriously affected")
 png(file.path(output, paste0(name_RF, "_interpolate_RF_pred.png")), height = 800, width = 800)
@@ -136,7 +138,7 @@ dev.off()
 folder_PRED_F <- file.path(folder_PRED, "F_NORM")
 dir.create(folder_PRED_F)
 
-all_pred_F <- func_pred_RF(raster_years, rf_model_F_RF, sampleloc_extent3,  outpur_dir = folder_PRED_F)
+all_pred_F <- func_pred_RF(raster_years, rf_model_F_RF, sampleloc_extent4_land,  outpur_dir = folder_PRED_F)
 # all_pred_F <- lapply(list.files(folder_PRED_F), function(x){rast(file.path(folder_PRED_F, x))})
 
 brks <- c(0,1,2,3,4,5,10,15,20)
@@ -158,7 +160,7 @@ dir.create(folder_PRED_F_class)
 
 # rf_model_WPI_RF_CLASS$forest$independent.variable.names # variable names
 
-all_pred_F_Class <- func_pred_RF(raster_years, rf_model_F_RF_CLASS, sampleloc_extent3, outpur_dir = folder_PRED_F_class)
+all_pred_F_Class <- func_pred_RF(raster_years, rf_model_F_RF_CLASS, sampleloc_extent4_land, outpur_dir = folder_PRED_F_class)
 
 labs <- c("F 0.0-0.3", "F 0.3-5", "F 5-10", "F 10-15", "F >= 15")
 png(file.path(output, paste0(name_RF, "_interpolate_RF_pred.png")), height = 800, width = 800)
@@ -179,7 +181,7 @@ dev.off()
 folder_PRED_P <- file.path(folder_PRED, "P3")
 dir.create(folder_PRED_P)
 
-all_pred_P <- func_pred_RF(raster_years, rf_model_P_RF, sampleloc_extent3, 
+all_pred_P <- func_pred_RF(raster_years, rf_model_P_RF, sampleloc_extent4_land, 
               outpur_dir = folder_PRED_P)
 # all_pred_P <- lapply(list.files(folder_PRED_P), function(x){rast(file.path(folder_PRED_P, x))})
 
