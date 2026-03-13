@@ -16,25 +16,24 @@ getwd()
 setwd("./Phosphate")
 source('./R-scripts/hel-func.R', chdir = TRUE)
 
-output <- "./R-scripts/02_2013NORM_Valid_elZrelli-outputs_LC08-09"
+output <- "./R-scripts/output/02_2013NORM_Valid_elZrelli-outputs_LC08-09"
 dir.create(output)
 
 data_elZrelli_shp <- "./elZrelli2018_shp"
 data_elZrelli <- "./elZrelli2018"
 
-data_pif <- "./landsat-SEPTEMBER_PIF_LC08-09"
+data_pif <- "./final_landsat-SEPTEMBER_PIF_LC08-09"
 
-data_dir_valid_masekd <- "./landsat-interpolation"
-dir.create(data_dir_valid_masekd)
+data_dir_valid_masekd <- "./final_landsat-interpolation"
 
 # VAlidation Chla Reana
-data_CHla <- "./NOAAMSL12_chla/chlora/monthly/WW00"
+# data_CHla <- "./NOAAMSL12_chla/chlora/monthly/WW00"
 
 # files <- list.files(data_CHla)
 # REANA_chla <- rast(file.path(data_CHla, files))
 
 # Validation nwl Reana
-data_nlw <- "./NOAAMSL12_chla/nlw/monthly/WW00"
+# data_nlw <- "./NOAAMSL12_chla/nlw/monthly/WW00"
 
 # files_nlw <- list.files(data_nlw)
 # REANA_nlw <- rast(file.path(data_nlw, files_nlw))
@@ -80,36 +79,33 @@ sampleloc_extent4_land <- erase(sampleloc_extent4_land, gulf_shp)
 # load el Kateb 2018 data >> vorbereitet in 00_elZrelli_dataprep_interpolate.R
 # list.files(data_elZrelli)
 heavymetal <-  read.csv(file.path(data_elZrelli, "elZrelli2018_heavymetal_POINTS.csv"), sep = ",", header = TRUE, row.names = 1)
-waterPolIndex <-  read.csv(file.path(data_elZrelli, "elZrelli2018_waterPollutionIndex_POINTS.csv"), sep = ";", header = TRUE)
+waterPolIndex <-  read.csv(file.path(data_elZrelli, "elZrelli2018_waterPollutionIndex_POINTS.csv"), sep = ",", header = TRUE)
 
 # ---------------------------------------------------------
 # load landsat data, sep 2013 ------------------
 # ---------------------------------------------------------
 # crop sample locations ------------------
 # # load normierte scene 
-# norm_files <- list.files(data_pif, pattern = "^WATER_NORMIERT2013_proBand_")
-norm_files <- list.files(data_pif, pattern = "^2_WATER_NORMIERT2013_proBand_")
+norm_files <- list.files(data_pif, pattern = "^WATER_NORMIERT2013_proBand_")
 parts <- strsplit(norm_files, "_")
-years <- sapply(parts, `[`, 5) #4 
+years <- sapply(parts, `[`,4)  
 idxyear2013 <- which(years == "2013")
 
 valid_SEP_Extent <- rast(file.path(data_pif, norm_files[idxyear2013]))
 plot(valid_SEP_Extent)
 
-# # crop sample loc extent -----
-# sampleloc_points_pj <- project(sampleLoc_points, crs(valid_SEP_Extent))
+sampleloc_points_pj <- project(sampleLoc_points, crs(valid_SEP_Extent))
 
 buffer <- buffer(sampleloc_points_pj, width = 200) # meter
+## crop sample loc extent -----
 # valid_SEP_points <- mask(valid_SEP_Extent, buffer)
 # valid_SEP_points <- crop(valid_SEP_points, valid_SEP_Extent)
 # plot(valid_SEP_points$Blue)
 
-# # writeRaster(valid_SEP_points, file.path(data_pif,"NORM13_perBand_POINTS_valid_sampleLoc_SEP2013.tif") , overwrite = TRUE)
-# writeRaster(valid_SEP_points, file.path(data_pif,"2_NORM13_perBand_POINTS_valid_sampleLoc_SEP2013.tif") , overwrite = TRUE)
+# writeRaster(valid_SEP_points, file.path(data_pif,"NORM13_perBand_POINTS_valid_sampleLoc_SEP2013.tif") , overwrite = TRUE)
 
 # load 
-# valid_SEP_points <- rast(file.path(data_pif,"NORM13_perBand_POINTS_valid_sampleLoc_SEP2013.tif"))
-valid_SEP_points <- rast(file.path(data_pif,"2_NORM13_perBand_POINTS_valid_sampleLoc_SEP2013.tif"))
+valid_SEP_points <- rast(file.path(data_pif,"NORM13_perBand_POINTS_valid_sampleLoc_SEP2013.tif"))
 
 sampleloc_points_pj <- project(sampleLoc_points, crs(valid_SEP_Extent))
 indloc_pj <- project(vect(matrix(ind_loc, ncol=2), crs="EPSG:4326"), crs(valid_SEP_Extent))
@@ -127,7 +123,6 @@ gulf_shp_pj <- project(gulf_shp, crs(valid_SEP_Extent))
 # points(indloc_pj, col = "red")
 # lines(gulf_shp_pj, col = "black", alpha = 0.2)
 # dev.off()
-
 
 # ---------------------------------------------------------
 # ANALYSE alle variables  --------------------------------------------
@@ -243,11 +238,11 @@ label_text <- paste0(
 )
 
 p_WPI_GR2 <- p_WPI_GR  +
-  annotate("richtext",     x = max(df_corr$Longitude, na.rm = TRUE)-0.1,
+  annotate("richtext",     x = max(df_corr$Longitude, na.rm = TRUE)*0.985,
          y = max(values_long$Value, na.rm = TRUE)/2,
            label = label_text,
            hjust = 0,
-           size = 3)
+           size = 5)
 
 p_WPI_GR2
 ggsave(file.path(output, "WPi_Green_Red.png"), p_WPI_GR2, height = 6, width = 6, scale = 1.2)
@@ -356,11 +351,11 @@ label_text <- paste0(
 )
 
 p_WPI_INDEX2 <- p_WPI_INDEX  +
-  annotate("richtext",     x = max(df_corr$Longitude, na.rm = TRUE)-0.15,
+  annotate("richtext",     x = max(df_corr$Longitude, na.rm = TRUE)-0.17,
          y = max(values_long_INDEX$Value, na.rm = TRUE)/2,
            label = label_text,
            hjust = 0,
-           size = 3)
+           size =5)
 p_WPI_INDEX2
 ggsave(file.path(output, "WPi_INDEX.png"), p_WPI_INDEX2, height = 6, width = 6, scale = 1.2)
 
@@ -543,7 +538,7 @@ p_FP_GR2 <- p_FP_GR  +
          y = (max(values_long$Value, na.rm = TRUE)/2) - 1500,
            label = label_text,
            hjust = 0,
-           size = 3)
+           size = 3.5)
 
 p_FP_GR2
 ggsave(file.path(output, "heavymetal_Green_Red.png"), p_FP_GR2, height = 6, width = 6, scale = 1.2)
@@ -637,6 +632,7 @@ theme(
   ) 
 
 p_FP_IDX
+ggsave(file.path(output, "heavymetal_INDEX.png"), p_FP_IDX, height = 6, width = 6, scale = 1.2)
 
 df_corr <- values_long_INDEX %>%
   pivot_wider(names_from = Band, values_from = Value) %>%
@@ -694,8 +690,43 @@ cor_results_NDSSI <- sapply(element_cols, function(col) {
 })
 
 t(cor_results_NDSSI)
+df_tassan <- as.data.frame(t(cor_results_tassan))
+df_tassan$Trait <- rownames(df_tassan)   # neue Spalte
+rownames(df_tassan) <- NULL
+colnames(df_tassan) <- c("R_tassan", "R2_tassan", "Trait")
+df_laili  <- as.data.frame(t(cor_results_laili)); df_laili$Trait <- rownames(df_laili); rownames(df_laili) <- NULL
+colnames(df_laili) <- c("R_laili", "R2_laili", "Trait")
 
-ggsave(file.path(output, "heavymetal_INDEX.png"), p_FP_IDX, height = 6, width = 6, scale = 1.2)
+df_chla   <- as.data.frame(t(cor_results_chla)); df_chla$Trait <- rownames(df_chla); rownames(df_chla) <- NULL
+colnames(df_chla) <- c("R_chla", "R2_chla", "Trait")
+df_NDWI   <- as.data.frame(t(cor_results_NDWI)); df_NDWI$Trait <- rownames(df_NDWI); rownames(df_NDWI) <- NULL
+colnames(df_NDWI) <- c("R_NDWI", "R2_NDWI", "Trait")
+df_TI     <- as.data.frame(t(cor_results_TI)); df_TI$Trait <- rownames(df_TI); rownames(df_TI) <- NULL
+colnames(df_TI) <- c("R_Ti", "R2_Ti", "Trait")
+df_NDSSI  <- as.data.frame(t(cor_results_NDSSI)); df_NDSSI$Trait <- rownames(df_NDSSI); rownames(df_NDSSI) <- NULL
+colnames(df_NDSSI) <- c("R_NDSSI", "R2_NDSSI", "Trait")
+df_sedi <- as.data.frame(t(cor_results_sedi)); df_sedi$Trait <- rownames(df_sedi); rownames(df_sedi) <- NULL
+colnames(df_sedi) <- c("R_sedi", "R2_sedi", "Trait")
+
+df_WPi <- data.frame(Trait = "WPI", R_tassan = cor_TSM_tassan, R2_tassan = cor_TSM_tassan^2,
+                            R_laili = cor_TSM_laili , R2_laili = cor_TSM_laili^2,
+                            R_chla =cor_CHLA,  R2_chla= cor_CHLA^2,
+                            R_NDWI = cor_NDWI, R2_NDWI = cor_NDWI^2,
+                            R_sedi = cor_sedi, R2_sedi = cor_sedi^2,
+                            R_Ti= cor_TI, R2_Ti = cor_TI, 
+                            R_NDSSI = cor_NDSSI, R2_NDSSI = cor_NDSSI)
+cor_heay_INDEX <- df_tassan %>%  
+  left_join(df_laili, by = "Trait") %>%
+  left_join(df_chla, by = "Trait") %>%
+  left_join(df_NDWI, by = "Trait") %>%
+  left_join(df_TI, by = "Trait") %>%
+  left_join(df_NDSSI, by = "Trait") %>%
+  left_join(df_sedi, by = "Trait") 
+setdiff(names(df_WPi), names(cor_heay_INDEX))
+
+cor_heay_INDEX <- rbind(cor_heay_INDEX, df_WPi)
+cor_heay_INDEX
+write.csv(cor_heay_INDEX, file.path(output, "corr_heavymeatal_INDEX.csv"), row.names = FALSE)
 
 # --------------------------------------------------------
 # RandomForest Modelle mit Interpolated WPI, F und P 
@@ -705,11 +736,11 @@ library(caret)
 library(randomForest)
 library(ranger)
 
-output_RF <- file.path(output, "2_RF_NORM_interpolate_LC08-09")
+output_RF <- file.path(output, "final_RF_NORM_interpolate_LC08-09")
 dir.create(output_RF)
-output_MODEL <- file.path(output_RF, "RF_NORM_models")
+output_MODEL <- file.path("./final_RF_NORM_models_LC08-09")
 dir.create(output_MODEL)
-raster_outRF_pred <- "./2_RF_NORM_pred_LC08-09"
+raster_outRF_pred <- "./final_RF_NORM_pred_LC08-09"
 dir.create(raster_outRF_pred)
 
 # load interpolate data << 00_2013elZrelli_dataprep_interpolate.R 
@@ -717,9 +748,8 @@ WPI_interpolate <- rast(file.path(data_dir_valid_masekd, "WPi_interpolate.tif"))
 F_interpolate <- rast(file.path(data_dir_valid_masekd, "F_interpolate.tif")) 
 P_interpolate <- rast(file.path(data_dir_valid_masekd, "P_interpolate.tif")) 
 Cu_interpolate <- rast(file.path(data_dir_valid_masekd, "Cu_interpolate.tif")) 
+plot(WPI_interpolate)
 
-# prep landsat remot sensing data
-sampleloc_extent2_pj <- project(sampleloc_extent2, crs(valid_SEP_Extent))
 
 set.seed(42)
 # windows()
@@ -732,9 +762,21 @@ RSdata_valid <- mask(valid_SEP_Extent, WPI_interpolate_pj_res)
 names(RSdata_valid) <- names(valid_SEP_Extent) 
 plot(RSdata_valid)
 
+# Random Forest Regression für Water Pollution Index ----
 brks <- c( 0,1,2,3,4, 6, 10, 15, 30)#seq(0.3, 20,  by = 4)
 RF_WPI <- func_RF_ranger(WPI_interpolate, RSdata_valid, model_name = "WPI_RF", output_MODLE, output_RF, raster_outRF_pred,
-                brks = brks, unite = "WPI")       
+                brks = brks, unite = "WPI")   
+# Random Forest KLASSIFIKATION für Water Pollution Index ----
+rcl <- matrix(c(-Inf, 1, 1,
+  1, 2, 2,
+  2, 3, 3,
+  3, 5, 4,
+  5, Inf, 5), ncol = 3, byrow = TRUE)
+
+labs <- c("Not affected", "Slightly affected","Moderately affected","Strongly affected","Seriously affected")
+RF_class_WPI <- func_RF_ranger_class(WPI_interpolate, RSdata_valid, "WPI_RF_class", output_MODEL,
+                                  output_RF, raster_outRF_pred,
+                                  rcl, unite = "WPI", labs)   
 
 # -------------------------------------------
 # RandomForest für Florine F ----
@@ -745,12 +787,23 @@ RSdata_valid <- mask(valid_SEP_Extent, F_interpolate_pj_res)
 names(RSdata_valid) <- names(valid_SEP_Extent) 
 plot(RSdata_valid)
 
+## Random Forest Regression für Florine ----
 unite <- "[mg/l]"
-brks <- c( 0,1,2,3,4,5,10,15,20)
+brks <- c(0,1,2,3,4,5,10,15,20)
 RF_F <- func_RF_ranger(F_interpolate, RSdata_valid, model_name = "F_RF", 
                 output_MODLE, output_RF, raster_outRF_pred,
                 brks = brks, unite = unite)
 
+# Random Forest KLASSIFIKATION für Flourine ----
+rcl <- matrix(c(-Inf, 0.3, 1, #min, max, group
+  0.3, 5, 2,
+  5, 10, 3,
+  10, 15, 4,
+  15, Inf, 5), ncol = 3, byrow = TRUE)
+labs <- c("F 0.0-0.3", "F 0.3-5", "F 5-10", "F 10-15", "F >= 15")
+RF_class_F <- func_RF_ranger_class(F_interpolate, RSdata_valid, "F_RF_class", output_MODEL,
+                                  output_RF, raster_outRF_pred,
+                                  rcl, unite = "F [mg/l]", labs)   
 # -------------------------------------------
 # RandomForest für Phsophor P ----
 P_interpolate_pj <- project(P_interpolate,  crs(valid_SEP_Extent))
@@ -760,59 +813,23 @@ RSdata_valid <- mask(valid_SEP_Extent, P_interpolate_pj_res)
 names(RSdata_valid) <- names(valid_SEP_Extent) 
 plot(RSdata_valid)
 
+# Random Forest Regression für phosphor----
 unite <- "[mg/l]"
 brks <- c( 0, 0.5,1,2,3,4, 5, 6)#
 RF_P <- func_RF_ranger(P_interpolate, RSdata_valid, model_name = "P_RF", 
                 output_MODLE, output_RF, raster_outRF_pred,
-                brks = brks, unite = unite)
+                brks = brks, unite = unite, labs)
 
- 
-#---------------------------------------------------------------
-#---------------------------------------------------------------
-#--------------------------------------------------------------- 
-# KLASSIFIKATION ------------------
-# RandomForest Klassifikation Model mit Interpolated F und P 
-set.seed(42)
-# windows()
-# -------------------------------------------
-# Water Pollution Index ----
-# Random Forest KLASSIFIKATION für Water Pollution Index ----
-WPI_interpolate_pj <- project(WPI_interpolate,  crs(valid_SEP_Extent))
-WPI_interpolate_pj_res <- resample(WPI_interpolate_pj$var1.pred, valid_SEP_Extent)
-
-RSdata_valid <- mask(valid_SEP_Extent, WPI_interpolate_pj_res)
-names(RSdata_valid) <- names(valid_SEP_Extent) 
-plot(RSdata_valid)
-
-rcl <- matrix(c(-Inf, 1, 1,
-  1, 2, 2,
+# Random Forest KLASSIFIKATION für phosphor ----
+rcl <- matrix(c(-Inf, 0.1, 1, #min, max, group
+  0.1, 2, 2,
   2, 3, 3,
-  3, 5, 4,
-  5, Inf, 5), ncol = 3, byrow = TRUE)
-
-labs <- c("Not affected", "Slightly affected","Moderately affected","Strongly affected","Seriously affected")
-RF_class_WPI <- func_RF_ranger_class(WPI_interpolate, RSdata_valid, "WP_RF_class", output_MODEL,
+  3, 4, 4,
+  4, Inf, 5), ncol = 3, byrow = TRUE)
+labs <- c("P 0.0-0.1", "P 0.1-2", "P 2-3", "P 3-4", "P >= 4")
+RF_class_P <- func_RF_ranger_class(P_interpolate, RSdata_valid, model_name = "P_RF_class", output_MODEL,
                                   output_RF, raster_outRF_pred,
-                                  rcl, unite = "WPI", labs)   
-
-
-
-# -------------------------------------------
-# Random Forest KLASSIFIKATION für Flourine ----
-
-RF_class_F <- func_RF_ranger_class(F_interpolate, RSdata_valid_norm, "WP_RF_class_NORM", output_MODEL,
-                                  output_RF, raster_outRF_pred,
-                                  rcl, unite = "WPI")   
-
-
-# -------------------------------------------
-# Random Forest KLASSIFIKATION für Water Pollution Index ----
-
-RF_class_WPI <- func_RF_ranger_class(P_interpolate, RSdata_valid_norm, "WP_RF_class_NORM",
-                                  sampleloc_Rvalid_pj, output_MODEL,
-                                  output_RF, raster_outRF_pred,
-                                  rcl, unite = "WPI")   
-
+                                  rcl, unite = "P [mg/l]", labs)   
 
 # #---------------------------------------------------------------
 # #---------------------------------------------------------------

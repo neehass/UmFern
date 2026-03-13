@@ -886,7 +886,7 @@ func_RF_ranger <- function(dat_interpolate, RSdata_valid, model_name, output_MOD
            rf_df_sample <- rf_df_sample[, !colnames(rf_df_sample) %in% c("NDWI","CoastalAerosol", "SWIR2", "Blue" , "Green" , "Red", "NIR" ,"SWIR1")]
     
         } else {
-              rf_df_sample <- rf_df_sample[, !colnames(rf_df_sample) %in% c("NDWI","CoastalAerosol", "SWIR2", "Blue" , "Green" , "Red", "NIR" ,"SWIR1")]
+              rf_df_sample <- rf_df_sample[, !colnames(rf_df_sample) %in% c("CoastalAerosol", "SWIR2", "Blue" , "Green" , "Red", "NIR" ,"SWIR1")]
         }
         rf_df_sample <- na.omit(rf_df_sample)
         # # zscore normieren
@@ -1005,7 +1005,7 @@ func_RF_ranger_class <- function(dat_interpolate, RSdata_valid, model_name, outp
             rf_df_sample <- rf_df_sample[, !colnames(rf_df_sample) %in% c("NDWI","CoastalAerosol", "SWIR2", "Blue" , "Green" , "Red", "NIR" ,"SWIR1")]
 
         } else {
-                rf_df_sample <- rf_df_sample[, !colnames(rf_df_sample) %in% c("NDWI","CoastalAerosol", "SWIR2", "Blue" , "Green" , "Red", "NIR" ,"SWIR1")]
+                rf_df_sample <- rf_df_sample[, !colnames(rf_df_sample) %in% c("CoastalAerosol", "SWIR2", "Blue" , "Green" , "Red", "NIR" ,"SWIR1")]
         }
     rf_df_sample <- na.omit(rf_df_sample)
     # # normieren

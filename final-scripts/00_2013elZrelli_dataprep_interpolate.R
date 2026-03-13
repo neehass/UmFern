@@ -25,9 +25,7 @@ dir.create(output, recursive = TRUE)
 data_elZrelli_shp <- "./elZrelli2018_shp"
 data_elZrelli <- "./elZrelli2018"
 
-data_pif <- "./landsat-SEPTEMBER_PIF_LC08-09"
-
-data_dir_valid_masekd <- "./landsat-interpolation"
+data_dir_valid_masekd <- "./final_landsat-interpolation"
 dir.create(data_dir_valid_masekd)
 # ----------------------------------------------------------------
 # phosphat industry locations ------
