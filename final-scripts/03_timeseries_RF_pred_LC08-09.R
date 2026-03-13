@@ -12,15 +12,15 @@ getwd()
 setwd("./Phosphate")
 source('./R-scripts/final-scripts/hel-func.R', chdir = TRUE)
 
-output <- "./R-scripts/output/timeseries-outputs_LC08/RF_NORM"
+output <- "./R-scripts/output/03_timeseries_RF_pred_LC08-09"
 dir.create(output, recursive = TRUE)
 
-data_crop_dir <- "./landsat-SEPTEMBER_PIF_LC08-09"
 data_dir_cloudmask <- "./landsat-SEPTEMBER_cloudmask"
-folder_MODELS <- "./R-scripts/2_2013NORM_Valid_elZrelli-outputs_LC08-09/2_RF_NORM_interpolate_LC08-09/RF_NORM_models"
+data_crop_dir <- "./final_landsat-SEPTEMBER_PIF_LC08-09"
 
-folder_PRED <- "./2_RF_NORM_pred_time_LC08-09"
-dir.create(folder_PRED)
+folder_MODELS <- file.path("./final_RF_NORM_models_LC08-09")
+
+folder_PRED <- "./final_RF_NORM_pred_LC08-09"
 
 data_elZrelli_shp <- "./elZrelli2018_shp"
 data_elZrelli <- "./elZrelli2018"
@@ -55,15 +55,17 @@ sampleloc_extent3 <- erase(sampleloc_extent3, gulf_shp)
 # load RF modles ------------------
 # ---------------------------------------------------------
 rf_model_WPI_RF <- readRDS(file.path(folder_MODELS, paste0("rf_model_WPI_RF.rds")))
-rf_model_WPI_RF_CLASS <- readRDS(file.path(folder_MODELS, paste0("rf_model_WP_RF_class.rds")))
+rf_model_WPI_RF_CLASS <- readRDS(file.path(folder_MODELS, paste0("rf_model_WPI_RF_class.rds")))
+
+rf_model_F_RF <- readRDS(file.path(folder_MODELS, paste0("rf_model_F_RF.rds")))
+rf_model_F_RF_CLASS <- readRDS(file.path(folder_MODELS, paste0("rf_model_F_RF_class.rds")))
 
 # ---------------------------------------------------------
 # load landsat data ------------------
 # ---------------------------------------------------------
-# files_raster <- list.files(data_crop_dir, recursive = TRUE, pattern="^WATER_NORMIERT")
-files_raster <- list.files(data_crop_dir, recursive = TRUE, pattern="^2_WATER_NORMIERT")
+files_raster <- list.files(data_crop_dir, recursive = TRUE, pattern="^WATER_NORMIERT")
 parts <- strsplit(files_raster, "_|\\.")
-years <- sapply(parts, `[`, 5) # 4
+years <- sapply(parts, `[`, 4) 
 unique_years <- unique(years)
 print(unique_years) # von 2013 bis 2025 >> 12Jahre
 length(unique_years) # 10 Scenen 
@@ -72,7 +74,7 @@ raster_years <- lapply(files_raster, function(x){rast(file.path(data_crop_dir, x
 names(raster_years) <- paste0("year_",unique_years)
 raster_years <- lapply(raster_years, function(x) {x[[ !names(x) %in% c("CoastalAerosol", "SWIR2") ]]})
 
-png(file.path(output, paste0("RAW", ".png")), height = 800, width = 800)
+png(file.path(output, paste0("RAW-Blue", ".png")), height = 800, width = 800)
 par(mfrow=c(5,2))
 for(y in 1:length(unique_years)){
     # max_abs <- max(abs(global(baseline_diff[[y]], "max", na.rm=TRUE)),
@@ -92,7 +94,7 @@ dir.create(folder_PRED_WPI)
 
 rf_model_WPI_RF$forest$independent.variable.name
 
-# all_pred_WPI <- func_pred_RF(raster_years, rf_model_WPI_RF, sampleloc_extent3, outpur_dir = folder_PRED_WPI)
+#all_pred_WPI <- func_pred_RF(raster_years, rf_model_WPI_RF, sampleloc_extent3, outpur_dir = folder_PRED_WPI)
 all_pred_WPI <- lapply(list.files(folder_PRED_WPI), function(x){rast(file.path(folder_PRED_WPI, x))})
 
 brks <- c( 0,1,2,3,4, 6, 10, 15, 30)#seq(0.3, 20,  by = 4)
@@ -131,14 +133,14 @@ dev.off()
 # ---------------------------------------------------------
 # make predictions with F model ------------------
 # ---------------------------------------------------------
-folder_PRED_F <- file.path(folder_PRED, "F3")
+folder_PRED_F <- file.path(folder_PRED, "F_NORM")
 dir.create(folder_PRED_F)
 
 all_pred_F <- func_pred_RF(raster_years, rf_model_F_RF, sampleloc_extent3,  outpur_dir = folder_PRED_F)
 # all_pred_F <- lapply(list.files(folder_PRED_F), function(x){rast(file.path(folder_PRED_F, x))})
 
-brks <- c( 0,1,2,3,4, 6, 10, 15, 30)
-png(file.path(output, "F3_interpolate_RF_pred.png"), height = 800, width = 800)
+brks <- c(0,1,2,3,4,5,10,15,20)
+png(file.path(output, "F_interpolate_RF_pred.png"), height = 800, width = 800)
 par(mfrow=c(7,4))
 for(y in 1:length(unique_years)){
     # max_abs <- max(abs(global(baseline_diff[[y]], "max", na.rm=TRUE)),
@@ -149,8 +151,30 @@ for(y in 1:length(unique_years)){
 }
 dev.off()
 
+# Klassifikation and NORMIERT ------------------------
+name_RF <- "F_class_NORM"
+folder_PRED_WPI_class <- file.path(folder_PRED, name_RF)
+dir.create(folder_PRED_F_class)
+
+# rf_model_WPI_RF_CLASS$forest$independent.variable.names # variable names
+
+all_pred_F_Class <- func_pred_RF(raster_years, rf_model_F_RF_CLASS, sampleloc_extent3, outpur_dir = folder_PRED_F_class)
+
+labs <- c("F 0.0-0.3", "F 0.3-5", "F 5-10", "F 10-15", "F >= 15")
+png(file.path(output, paste0(name_RF, "_interpolate_RF_pred.png")), height = 800, width = 800)
+par(mfrow=c(6,4))
+for(y in 1:length(unique_years)){
+    # max_abs <- max(abs(global(baseline_diff[[y]], "max", na.rm=TRUE)),
+    #             abs(global(baseline_diff[[y]], "min", na.rm=TRUE)))
+       levels(all_pred_F_Class[[y]]) <- data.frame(ID=1:5, label=labs)
+  plot(all_pred_F_Class[[y]],
+       main = paste("WPI", unique_years[y]), )
+}
+dev.off()
+
+
 # ---------------------------------------------------------
-# make predictions with F model ------------------
+# make predictions with P model ------------------
 # ---------------------------------------------------------
 folder_PRED_P <- file.path(folder_PRED, "P3")
 dir.create(folder_PRED_P)

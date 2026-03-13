@@ -1086,7 +1086,7 @@ func_RF_ranger_class <- function(dat_interpolate, RSdata_valid, model_name, outp
     return(list(RF = rf_model, pred = pred_WPI))
 }
 
-func_pred_RF <- function(raster, model, sampleloc_extent3, outpur_dir){
+func_pred_RF <- function(raster, model, sampleloc_extent, outpur_dir){
 
   tot_start <- Sys.time()
   all_pred <- list()
@@ -1119,9 +1119,9 @@ func_pred_RF <- function(raster, model, sampleloc_extent3, outpur_dir){
     pred_mask <- pred
 
     # mask 
-    #sampleloc_extent3_pj <- project(sampleloc_extent3, crs(pred))
-    # pred_mask <- mask(pred, sampleloc_extent3_pj)
-    # plot(pred_mask)
+    sampleloc_extent_pj <- project(sampleloc_extent, crs(pred))
+    pred_mask <- mask(pred, sampleloc_extent_pj)
+    plot(pred_mask)
     
     stop <- Sys.time()
     time <- stop - start
