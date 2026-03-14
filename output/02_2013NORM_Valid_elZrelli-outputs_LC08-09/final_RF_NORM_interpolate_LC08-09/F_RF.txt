@@ -1,8 +1,8 @@
 Model: F_RF
 ----------------------------------
-OOB MSE:  1.176446
-OOB RMSE: 1.084641
-OOB R2:   0.708977
+OOB MSE:  0.968525
+OOB RMSE: 0.984137
+OOB R2:   0.771758
 Number of trees: 500
 Mtry: 2
 Min node size: 5

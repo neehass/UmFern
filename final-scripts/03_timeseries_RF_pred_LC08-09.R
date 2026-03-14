@@ -96,8 +96,8 @@ dir.create(folder_PRED_WPI)
 
 rf_model_WPI_RF$forest$independent.variable.name
 
-#all_pred_WPI <- func_pred_RF(raster_years, rf_model_WPI_RF, sampleloc_extent4_land, outpur_dir = folder_PRED_WPI)
-all_pred_WPI <- lapply(list.files(folder_PRED_WPI), function(x){rast(file.path(folder_PRED_WPI, x))})
+all_pred_WPI <- func_pred_RF(raster_years, rf_model_WPI_RF, sampleloc_extent4_land, outpur_dir = folder_PRED_WPI)
+#all_pred_WPI <- lapply(list.files(folder_PRED_WPI), function(x){rast(file.path(folder_PRED_WPI, x))})
 
 brks <- c( 0,1,2,3,4, 6, 10, 15, 30)#seq(0.3, 20,  by = 4)
 png(file.path(output, paste0(name_RF, "_interpolate_RF_pred.png")), height = 800, width = 800)

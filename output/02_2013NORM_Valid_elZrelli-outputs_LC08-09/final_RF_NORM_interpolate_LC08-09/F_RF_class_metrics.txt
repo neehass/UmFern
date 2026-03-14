@@ -1,8 +1,8 @@
 Model: F_RF_class
 ----------------------------------
 Model type: Classification
-OOB Error Rate: 0.0705
-OOB Accuracy:   0.9295
+OOB Error Rate: 0.0513
+OOB Accuracy:   0.9487
 Number of trees: 500
 Mtry: 2
 Min node size: 1
@@ -11,7 +11,7 @@ Splitrule: gini
 Confusion Matrix (OOB):
     predicted
 true     2     3     4     5
-   2 42927   973    30     7
-   3  2100  3122    60     1
-   4   194    95   322    13
-   5    34     1    19   102
+   2 43342   595    27     0
+   3  1610  3702    40     0
+   4   143    85   313    17
+   5    29     0    19    78

@@ -14,7 +14,7 @@ library(ggtext)
 
 getwd()
 setwd("./Phosphate")
-source('./R-scripts/hel-func.R', chdir = TRUE)
+source('./R-scripts/final-scripts/hel-func.R', chdir = TRUE)
 
 output <- "./R-scripts/output/02_2013NORM_Valid_elZrelli-outputs_LC08-09"
 dir.create(output)
@@ -84,6 +84,7 @@ waterPolIndex <-  read.csv(file.path(data_elZrelli, "elZrelli2018_waterPollution
 # ---------------------------------------------------------
 # load landsat data, sep 2013 ------------------
 # ---------------------------------------------------------
+# windows()
 # crop sample locations ------------------
 # # load normierte scene 
 norm_files <- list.files(data_pif, pattern = "^WATER_NORMIERT2013_proBand_")
@@ -92,7 +93,9 @@ years <- sapply(parts, `[`,4)
 idxyear2013 <- which(years == "2013")
 
 valid_SEP_Extent <- rast(file.path(data_pif, norm_files[idxyear2013]))
-plot(valid_SEP_Extent)
+sampleloc_extent4_land_pj <- project(sampleloc_extent4_land, crs(valid_SEP_Extent))
+plot(valid_SEP_Extent$Green)
+plot(sampleloc_extent4_land_pj, add = TRUE)
 
 sampleloc_points_pj <- project(sampleLoc_points, crs(valid_SEP_Extent))
 
@@ -731,7 +734,6 @@ write.csv(cor_heay_INDEX, file.path(output, "corr_heavymeatal_INDEX.csv"), row.n
 # --------------------------------------------------------
 # RandomForest Modelle mit Interpolated WPI, F und P 
 # --------------------------------------------------------
-# RF F
 library(caret)
 library(randomForest)
 library(ranger)
@@ -749,7 +751,6 @@ F_interpolate <- rast(file.path(data_dir_valid_masekd, "F_interpolate.tif"))
 P_interpolate <- rast(file.path(data_dir_valid_masekd, "P_interpolate.tif")) 
 Cu_interpolate <- rast(file.path(data_dir_valid_masekd, "Cu_interpolate.tif")) 
 plot(WPI_interpolate)
-
 
 set.seed(42)
 # windows()

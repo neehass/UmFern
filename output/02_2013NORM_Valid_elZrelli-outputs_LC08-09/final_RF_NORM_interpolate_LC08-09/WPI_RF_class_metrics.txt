@@ -1,8 +1,8 @@
 Model: WPI_RF_class
 ----------------------------------
 Model type: Classification
-OOB Error Rate: 0.2506
-OOB Accuracy:   0.7494
+OOB Error Rate: 0.2018
+OOB Accuracy:   0.7982
 Number of trees: 500
 Mtry: 2
 Min node size: 1
@@ -11,8 +11,8 @@ Splitrule: gini
 Confusion Matrix (OOB):
     predicted
 true     1     2     3     4     5
-   1   609   629   342    85    75
-   2   237  8300  2191   230    77
-   3    87  1522 13536  1847   215
-   4    25   109  1736  9579  1328
-   5    27    42   284  1444  5444
+   1  1244   345    10    56    78
+   2   302  8861  1637    84    15
+   3     3  1469 13947  1498   136
+   4    48    92  1505 10000  1266
+   5    65    21   169  1291  5858
