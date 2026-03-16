@@ -82,44 +82,6 @@ plot(cv_pred_REG, col = col_fun(10), plg = list(title = "CV Predictions\n 2013-2
 dev.off()
 
 # -----------------------------------------------------------
-# baseline 2013 difference ------------------
-# ---------------------------------------------------------
-baseline2013 <- all_pred_WPI[[1]]
-diff <- func_baseline_diff(all_pred_WPI, baseline2013)
-years <- unique_years[2:length(unique_years)]
-
-df_list <- lapply(1:(length(unique_years)-1), function(y) {
-  r <- diff[[y+1]]
-  df <- as.data.frame(r, xy = TRUE)
-  df <- df %>% 
-    pivot_longer(cols = names(r), names_to = "band", values_to = "value")   
-     
-df$year <- unique_years[y+1]
-  return(df)
-})
-
-plot_df <- bind_rows(df_list)
-lim <- round(max(abs(plot_df$value)))
-
-p_diff_reg <- ggplot(plot_df, aes(x = x, y = y, fill = value)) +
-  geom_raster() +
-  scale_fill_gradient2(low = "blue", mid = "white", high = "red",
-                       midpoint = 0, limits = c(-lim, lim)) +  # gleiche Farbskala
-     coord_equal() +
-  
-  facet_wrap(~ year, ncol = 5) +
-  theme_minimal() +
-  labs(fill = "Difference\ to 2013", x = "", y= "") +
-  theme(legend.position = "bottom", 
-  axis.text.x = element_text(angle = 45, hjust = 1)) 
-
-
-p_diff_reg
-ggsave(file.path(output, "diffPredciton_baseline2013.png"), p_diff_reg, 
-          width = 7, height = 6, scale = 1.2)
-
-
-# -----------------------------------------------------------
 # raw Index unterschiede ------------------
 # ---------------------------------------------------------
 data_crop_dir <- "./final_landsat-SEPTEMBER_PIF_LC08-09"
@@ -183,15 +145,51 @@ for(i in 1:length(index)){
                          midpoint = 0, limits = c(-lim, lim)) +  # gleiche Farbskala
           coord_equal() +
      
-     facet_wrap(~ year, ncol = 5) +
+     facet_wrap(~ year, ncol = 4) +
      theme_minimal() +
      labs(fill = paste("Difference",units[i], "\n to 2013"), x = "", y = "") +
      theme(legend.position = "bottom", 
      axis.text.x = element_text(angle = 45, hjust = 1)) 
 
-     p_diff_TSM
+     # p_diff_TSM
      ggsave(file.path(output, paste0(index[i], "_diffINDEX_baseline2013.png")), p_diff_TSM, 
-               width = 7, height = 6, scale = 1.2)
+               width = 4, height = 6, scale = 1.2)
 }
 
+# -----------------------------------------------------------
+# baseline 2013 difference PREDICTIONS ------------------
+# ---------------------------------------------------------
+baseline2013 <- all_pred_WPI[[1]]
+diff <- func_baseline_diff(all_pred_WPI, baseline2013)
+years <- unique_years[2:length(unique_years)]
+
+df_list <- lapply(1:(length(unique_years)-1), function(y) {
+  r <- diff[[y+1]]
+  df <- as.data.frame(r, xy = TRUE)
+  df <- df %>% 
+    pivot_longer(cols = names(r), names_to = "band", values_to = "value")   
+     
+df$year <- unique_years[y+1]
+  return(df)
+})
+
+plot_df <- bind_rows(df_list)
+lim <- round(max(abs(plot_df$value)))
+
+p_diff_reg <- ggplot(plot_df, aes(x = x, y = y, fill = value)) +
+  geom_raster() +
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red",
+                       midpoint = 0, limits = c(-lim, lim)) +  # gleiche Farbskala
+     coord_equal() +
+  
+  facet_wrap(~ year, ncol = 4) +
+  theme_minimal() +
+  labs(fill = "Difference\ to 2013", x = "", y= "") +
+  theme(legend.position = "bottom", 
+  axis.text.x = element_text(angle = 45, hjust = 1)) 
+
+
+# p_diff_reg
+ggsave(file.path(output, "diffPredciton_baseline2013.png"), p_diff_reg, 
+          width = 4, height = 6, scale = 1.2)
 

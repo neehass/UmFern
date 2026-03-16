@@ -788,7 +788,7 @@ func_plot_RF_varImp <- function(RF_model) { # chatgpt
     geom_col(fill = "#2C7FB8") +
     coord_flip() +
     labs(
-      title = "Variable Importance (Random Forest)",
+      title = "Variable Importance",
       x = "",
       y = "Importance"
     ) +
@@ -921,7 +921,7 @@ func_RF_ranger <- function(dat_interpolate, RSdata_valid, model_name, output_MOD
         # Variable Importance
         # ranger::importance(rf_model_WPI_RF)
         p <- func_plot_RF_varImp(rf_model_WPI_RF)
-        ggsave(file.path(output_RF, paste0(model_name,"_pred_VarImp.png")), p, width = 5, height = 5, scale = 1.2)
+        ggsave(file.path(output_RF, paste0(model_name,"_pred_VarImp.png")), p, width = 3.5, height = 3.5, scale = 1.2)
 
         # predict 
         pred <- predict(RSdata_valid, rf_model_WPI_RF)
@@ -936,7 +936,7 @@ func_RF_ranger <- function(dat_interpolate, RSdata_valid, model_name, output_MOD
         }
         png(file.path(output_RF,  paste0(model_name, "_interpolate_RF_pred.png")), 
             height = 300, width = 300)
-        plot(pred_WPI, plg = list(title = unite), main = model_name, breaks = brks)
+        plot(pred_WPI, plg = list(title = unite), breaks = brks) # main = model_name
         plot(gulf_shp_pj, add = TRUE)
         points(sampleloc_points_pj, col = "red")
         points(indloc_pj, col = "black", pch = 15, cex = 1)
@@ -958,10 +958,11 @@ func_RF_ranger <- function(dat_interpolate, RSdata_valid, model_name, output_MOD
 
         R2 <- 1 - (SS_res / SS_tot)
 
-        png(file.path(output_RF,  paste0("RMSE_",model_name,"_interpolate_RF_pred",".png")), height = 300, width = 300)
+        png(file.path(output_RF,  paste0("RMSE_",model_name,"_interpolate_RF_pred",".png")), 
+            height = 300, width = 300)
         rng <- max(abs(values(pred_WPI_ERROR)), na.rm = TRUE)
-        plot(pred_WPI_ERROR,col = hcl.colors(100, "RdBu"),zlim = c(-rng, rng), 
-                main = paste(model_name, "\nRMSE:", round(rmse[1,], 2), "R2:", round(R2, 2)))
+        plot(pred_WPI_ERROR,col = hcl.colors(100, "RdBu"),zlim = c(-rng, rng) ) #, 
+                # main = paste(model_name, "\nRMSE:", round(rmse[1,], 2), "R2:", round(R2, 2)))
         points(sampleloc_points_pj, col = "red")
         points(indloc_pj, col = "black", pch = 15, cex = 1)
         dev.off()
@@ -1040,7 +1041,7 @@ func_RF_ranger_class <- function(dat_interpolate, RSdata_valid, model_name, outp
     # Variable Importance
     # ranger::importance(rf_model_WPI_RF)
     p <- func_plot_RF_varImp(rf_model)
-    ggsave(file.path(output_RF, paste0(model_name,"_pred_VarImp.png")), p, width = 5, height = 5, scale = 1.2)
+    ggsave(file.path(output_RF, paste0(model_name,"_pred_VarImp.png")), p, width = 3.5, height = 3.5, scale = 1.2)
 
     # prediction 
     print("make prediction")
@@ -1057,8 +1058,9 @@ func_RF_ranger_class <- function(dat_interpolate, RSdata_valid, model_name, outp
 
     levels(pred_WPI) <- data.frame(ID=1:5, label=labs)
 
-    png(file.path(output_RF,  paste0(model_name, "_interpolate_RF_pred.png")), height = 300, width = 300)
-    plot(pred_WPI, main = model_name)
+    png(file.path(output_RF,  paste0(model_name, "_interpolate_RF_pred.png")), 
+        height = 300, width = 300)
+    plot(pred_WPI )#, main = model_name)
     plot(gulf_shp_pj, add = TRUE)
     points(sampleloc_points_pj, col = "red")
     points(indloc_pj, col = "black", pch = 15, cex = 1)
@@ -1083,10 +1085,11 @@ func_RF_ranger_class <- function(dat_interpolate, RSdata_valid, model_name, outp
 
     R2 <- 1 - (SS_res / SS_tot)
 
-    png(file.path(output_RF,  paste0("RMSE_",model_name,"_interpolate_RF_pred",".png")), height = 300, width = 300)
+    png(file.path(output_RF,  paste0("RMSE_",model_name,"_interpolate_RF_pred",".png")), 
+        height = 300, width = 300)
     rng <- max(abs(values(pred_WPI_ERROR)), na.rm = TRUE)
-    plot(pred_WPI_ERROR,col = hcl.colors(100, "RdBu"),zlim = c(-rng, rng), 
-            main = paste(model_name, "\nRMSE:", round(rmse[1,], 2), "R2:", round(R2, 2)))
+    plot(pred_WPI_ERROR,col = hcl.colors(100, "RdBu"),zlim = c(-rng, rng)) #, 
+            # main = paste(model_name, "\nRMSE:", round(rmse[1,], 2), "R2:", round(R2, 2)))
     points(sampleloc_points_pj, col = "red")
     points(indloc_pj, col = "black", pch = 15, cex = 1)
     dev.off()

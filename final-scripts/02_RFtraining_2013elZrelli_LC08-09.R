@@ -767,6 +767,7 @@ plot(RSdata_valid)
 brks <- c( 0,1,2,3,4, 6, 10, 15, 30)#seq(0.3, 20,  by = 4)
 RF_WPI <- func_RF_ranger(WPI_interpolate, RSdata_valid, model_name = "WPI_RF", output_MODLE, output_RF, raster_outRF_pred,
                 brks = brks, unite = "WPI")   
+
 # Random Forest KLASSIFIKATION für Water Pollution Index ----
 rcl <- matrix(c(-Inf, 1, 1,
   1, 2, 2,
