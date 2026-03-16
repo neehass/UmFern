@@ -17,6 +17,7 @@ dir.create(output, recursive = TRUE)
 
 data_dir_cloudmask <- "./landsat-SEPTEMBER_cloudmask"
 data_crop_dir <- "./final_landsat-SEPTEMBER_PIF_LC08-09"
+data_crop_dir <- "./2final_landsat-SEPTEMBER_PIF_LC08-09"
 
 folder_MODELS <- file.path("./final_RF_NORM_models_LC08-09")
 
@@ -97,11 +98,11 @@ dir.create(folder_PRED_WPI)
 rf_model_WPI_RF$forest$independent.variable.name
 
 all_pred_WPI <- func_pred_RF(raster_years, rf_model_WPI_RF, sampleloc_extent4_land, outpur_dir = folder_PRED_WPI)
-#all_pred_WPI <- lapply(list.files(folder_PRED_WPI), function(x){rast(file.path(folder_PRED_WPI, x))})
+all_pred_WPI <- lapply(list.files(folder_PRED_WPI), function(x){rast(file.path(folder_PRED_WPI, x))})
 
 brks <- c( 0,1,2,3,4, 6, 10, 15, 30)#seq(0.3, 20,  by = 4)
 png(file.path(output, paste0(name_RF, "_interpolate_RF_pred.png")), height = 800, width = 800)
-par(mfrow=c(6,4))
+par(mfrow=c(3,4))
 for(y in 1:length(unique_years)){
     # max_abs <- max(abs(global(baseline_diff[[y]], "max", na.rm=TRUE)),
     #             abs(global(baseline_diff[[y]], "min", na.rm=TRUE)))
@@ -119,10 +120,11 @@ dir.create(folder_PRED_WPI_class)
 # rf_model_WPI_RF_CLASS$forest$independent.variable.names # variable names
 
 all_pred_WPI_Class <- func_pred_RF(raster_years, rf_model_WPI_RF_CLASS, sampleloc_extent4_land, outpur_dir = folder_PRED_WPI_class)
+all_pred_WPI_Class <- lapply(list.files(folder_PRED_WPI_class, pattern = ".tif$"), function(x){rast(file.path(folder_PRED_WPI_class, x))})
 
 labs <- c("Not affected", "Slightly affected","Moderately affected","Strongly affected","Seriously affected")
 png(file.path(output, paste0(name_RF, "_interpolate_RF_pred.png")), height = 800, width = 800)
-par(mfrow=c(6,4))
+par(mfrow=c(3,4))
 for(y in 1:length(unique_years)){
     # max_abs <- max(abs(global(baseline_diff[[y]], "max", na.rm=TRUE)),
     #             abs(global(baseline_diff[[y]], "min", na.rm=TRUE)))
@@ -135,7 +137,7 @@ dev.off()
 # ---------------------------------------------------------
 # make predictions with F model ------------------
 # ---------------------------------------------------------
-folder_PRED_F <- file.path(folder_PRED, "F_NORM")
+folder_PRED_F <- file.path(folder_PRED, "2F_NORM")
 dir.create(folder_PRED_F)
 
 all_pred_F <- func_pred_RF(raster_years, rf_model_F_RF, sampleloc_extent4_land,  outpur_dir = folder_PRED_F)
@@ -154,7 +156,7 @@ for(y in 1:length(unique_years)){
 dev.off()
 
 # Klassifikation and NORMIERT ------------------------
-name_RF <- "F_class_NORM"
+name_RF <- "2F_class_NORM"
 folder_PRED_WPI_class <- file.path(folder_PRED, name_RF)
 dir.create(folder_PRED_F_class)
 

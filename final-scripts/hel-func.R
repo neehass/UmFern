@@ -934,7 +934,8 @@ func_RF_ranger <- function(dat_interpolate, RSdata_valid, model_name, output_MOD
             pred_WPI <- pred_WPI/1000
             WPI_interpolate_pj[[1]] <- WPI_interpolate_pj[[1]] /1000
         }
-        png(file.path(output_RF,  paste0(model_name, "_interpolate_RF_pred.png")), height = 1000, width = 1000)
+        png(file.path(output_RF,  paste0(model_name, "_interpolate_RF_pred.png")), 
+            height = 300, width = 300)
         plot(pred_WPI, plg = list(title = unite), main = model_name, breaks = brks)
         plot(gulf_shp_pj, add = TRUE)
         points(sampleloc_points_pj, col = "red")
@@ -957,7 +958,7 @@ func_RF_ranger <- function(dat_interpolate, RSdata_valid, model_name, output_MOD
 
         R2 <- 1 - (SS_res / SS_tot)
 
-        png(file.path(output_RF,  paste0("RMSE_",model_name,"_interpolate_RF_pred",".png")), height = 1000, width = 1000)
+        png(file.path(output_RF,  paste0("RMSE_",model_name,"_interpolate_RF_pred",".png")), height = 300, width = 300)
         rng <- max(abs(values(pred_WPI_ERROR)), na.rm = TRUE)
         plot(pred_WPI_ERROR,col = hcl.colors(100, "RdBu"),zlim = c(-rng, rng), 
                 main = paste(model_name, "\nRMSE:", round(rmse[1,], 2), "R2:", round(R2, 2)))
@@ -1056,7 +1057,7 @@ func_RF_ranger_class <- function(dat_interpolate, RSdata_valid, model_name, outp
 
     levels(pred_WPI) <- data.frame(ID=1:5, label=labs)
 
-    png(file.path(output_RF,  paste0(model_name, "_interpolate_RF_pred.png")), height = 1000, width = 1000)
+    png(file.path(output_RF,  paste0(model_name, "_interpolate_RF_pred.png")), height = 300, width = 300)
     plot(pred_WPI, main = model_name)
     plot(gulf_shp_pj, add = TRUE)
     points(sampleloc_points_pj, col = "red")
@@ -1082,7 +1083,7 @@ func_RF_ranger_class <- function(dat_interpolate, RSdata_valid, model_name, outp
 
     R2 <- 1 - (SS_res / SS_tot)
 
-    png(file.path(output_RF,  paste0("RMSE_",model_name,"_interpolate_RF_pred",".png")), height = 1000, width = 1000)
+    png(file.path(output_RF,  paste0("RMSE_",model_name,"_interpolate_RF_pred",".png")), height = 300, width = 300)
     rng <- max(abs(values(pred_WPI_ERROR)), na.rm = TRUE)
     plot(pred_WPI_ERROR,col = hcl.colors(100, "RdBu"),zlim = c(-rng, rng), 
             main = paste(model_name, "\nRMSE:", round(rmse[1,], 2), "R2:", round(R2, 2)))

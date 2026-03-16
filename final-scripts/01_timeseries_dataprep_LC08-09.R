@@ -22,7 +22,7 @@ data_crop_dir <- "./final_landsat-SEPTEMBER_land_LC08-09"
 data_crop_dir <- "./2final_landsat-SEPTEMBER_land_LC08-09"
 dir.create(data_crop_dir)
 data_pif <- "./final_landsat-SEPTEMBER_PIF_LC08-09"
-data_pif <- "./2final_landsat-SEPTEMBER_PIF_ALL"
+data_pif <- "./2final_landsat-SEPTEMBER_PIF_LC08-09"
 dir.create(data_pif)
 
 # Messdaten SEp 2013
@@ -110,6 +110,7 @@ year <- years[y]
 print(year)
 raster_year <- func_timestep_sel(year, files_band, satNR_bands, unique_dates, data_dir, time = "ALL") #, staNR_exclude = staNR_exclude)
 
+year <- 2025
 # Autum
 start <- Sys.time()
 for(y in 1:length(years)){
@@ -433,7 +434,7 @@ norm_ALLyears_list_band_water <- lapply(norm_ALLyears_list_band, function(x){
     masked <- mask(x, gulf_shp_pj, inverse = TRUE)
     names(masked) <- names(x)
     return(masked)})
-plot(norm_ALLyears_list_band_water[[1]])
+plot(norm_ALLyears_list_band_water[[10]])
 
 # save 
 for(i in seq_along(norm_ALLyears_list_band_water)){
