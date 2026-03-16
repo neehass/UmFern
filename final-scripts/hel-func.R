@@ -251,9 +251,15 @@ func_mean_raster <- function(raster) {
     common_bands <- Reduce(intersect, lapply(raster, function(x) names(x)))
     print(paste("Common bands:", paste(common_bands, collapse = ", ")))
 
-    # ref <- raster[[2]] # 2013
+       if(length(common_bands) == 0){
 
-    # raster_aligned <- lapply(raster, function(r) {
+        print("No common bands found across rasters")
+        return(0)
+    }
+
+    # ref <- raster[[1]]
+
+    # raster <- lapply(raster, function(r) {
     # r <- resample(r, ref)   # Pixelgröße angleichen
     # r <- crop(r, ext(ref))  # auf Ref-Extent zuschneiden
     # return(r)
@@ -526,14 +532,16 @@ func_NDTI <- function(RED, GREEN){
 }
 
 # Turbidity Index
-func_TI <- function(RED, GREEN){
-    ti <- (RED) / (GREEN)
+# Heddam 2016 
+func_TI <- function(NIR, GREEN){
+    ti <- (NIR- GREEN) / (NIR + GREEN)
     return(ti)
 }
 
 # Sediemtn
+# Flores-Anderson et al. 2020
 func_sedi <- function(RED, BLUE){
-    sedi <- (RED) / (BLUE)
+    sedi <- (RED - BLUE) / (RED + BLUE)
     return(sedi)
 }
 
@@ -867,7 +875,7 @@ func_RF_ranger <- function(dat_interpolate, RSdata_valid, model_name, output_MOD
         RSdata_valid$logChla <- app(RSdata_valid[[c("Red","Green")]],fun = function(x) {  func_log_Chl(x[,1], x[,2]) })
         
         RSdata_valid$NDWI <- app(RSdata_valid[[c("Green","NIR")]],fun = function(x) { func_NDWI(x[,1] , x[,2])})
-        RSdata_valid$TI <- app(RSdata_valid[[c("Red","Green")]],fun = function(x) { func_TI(x[,1] , x[,2])})
+        RSdata_valid$TI <- app(RSdata_valid[[c("NIR","Green")]],fun = function(x) { func_TI(x[,1] , x[,2])})
         RSdata_valid$sediment <- app(RSdata_valid[[c("Red","Blue")]],fun = function(x) { func_sedi(x[,1] , x[,2])})
         RSdata_valid$NDSSI <- app(RSdata_valid[[c("Red","NIR")]],fun = function(x) { func_NDSSI(x[,1] , x[,2])})
        
@@ -980,7 +988,7 @@ func_RF_ranger_class <- function(dat_interpolate, RSdata_valid, model_name, outp
 
 
     RSdata_valid$NDWI <- app(RSdata_valid[[c("Green","NIR")]],fun = function(x) { func_NDWI(x[,1] , x[,2])})
-    RSdata_valid$TI <- app(RSdata_valid[[c("Red","Green")]],fun = function(x) { func_TI(x[,1] , x[,2])})
+    RSdata_valid$TI <- app(RSdata_valid[[c("NIR","Green")]],fun = function(x) { func_TI(x[,1] , x[,2])})
     RSdata_valid$sediment <- app(RSdata_valid[[c("Red","Blue")]],fun = function(x) { func_sedi(x[,1] , x[,2])})
     RSdata_valid$NDSSI <- app(RSdata_valid[[c("Red","NIR")]],fun = function(x) { func_NDSSI(x[,1] , x[,2])})
 
@@ -1105,7 +1113,7 @@ func_pred_RF <- function(raster, model, sampleloc_extent, outpur_dir){
 
 
     rast$NDWI <- app(rast[[c("Green","NIR")]],fun = function(x) { func_NDWI(x[,1] , x[,2])})
-    rast$TI <- app(rast[[c("Red","Green")]],fun = function(x) { func_TI(x[,1] , x[,2])})
+    rast$TI <- app(rast[[c("NIR","Green")]],fun = function(x) { func_TI(x[,1] , x[,2])})
     rast$sediment <- app(rast[[c("Red","Blue")]],fun = function(x) { func_sedi(x[,1] , x[,2])})
     rast$NDSSI <- app(rast[[c("Red","NIR")]],fun = function(x) { func_NDSSI(x[,1] , x[,2])})
 
@@ -1150,7 +1158,7 @@ func_index <- function(rast){
 
 
     rast$NDWI <- app(rast[[c("Green","NIR")]],fun = function(x) { func_NDWI(x[,1] , x[,2])})
-    rast$TI <- app(rast[[c("Red","Green")]],fun = function(x) { func_TI(x[,1] , x[,2])})
+    rast$TI <- app(rast[[c("NIR","Green")]],fun = function(x) { func_TI(x[,1] , x[,2])})
     rast$sediment <- app(rast[[c("Red","Blue")]],fun = function(x) { func_sedi(x[,1] , x[,2])})
     rast$NDSSI <- app(rast[[c("Red","NIR")]],fun = function(x) { func_NDSSI(x[,1] , x[,2])})
 

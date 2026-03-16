@@ -19,8 +19,10 @@ dir.create(output)
 
 data_dir <- "./landsat-SEPTEMBER"
 data_crop_dir <- "./final_landsat-SEPTEMBER_land_LC08-09"
+data_crop_dir <- "./2final_landsat-SEPTEMBER_land_LC08-09"
 dir.create(data_crop_dir)
 data_pif <- "./final_landsat-SEPTEMBER_PIF_LC08-09"
+data_pif <- "./2final_landsat-SEPTEMBER_PIF_ALL"
 dir.create(data_pif)
 
 # Messdaten SEp 2013
@@ -75,6 +77,20 @@ dates <- sapply(parts, `[`, 4)
 unique_dates <- unique(dates)
 print(sort(unique_dates))
 length(unique_dates)
+unique_dates[grepl("2025", unique_dates)]
+exclude <- c("20150802", "20170807", "20171026", "20180810", "20221125", "20220813", "20230808", "20231128",
+            "20240810", "20241130", "20250805")
+files_band <- files_band[!dates %in% exclude]
+
+# nur LC08, LC09
+parts <- strsplit(files_band, "_")
+idx <- which(sapply(parts, `[`, 1) %in% c("LC08", "LC09"))
+parts <- parts[idx]
+satNR <- unique(sapply(parts, `[`, 1))
+dates <- sapply(parts, `[`, 4)
+unique_dates <- unique(dates)
+print(sort(unique_dates))
+length(unique_dates)
 
 # band overview:
 satNR_bands <- list(
@@ -94,7 +110,6 @@ year <- years[y]
 print(year)
 raster_year <- func_timestep_sel(year, files_band, satNR_bands, unique_dates, data_dir, time = "ALL") #, staNR_exclude = staNR_exclude)
 
-years <- 2013
 # Autum
 start <- Sys.time()
 for(y in 1:length(years)){
@@ -128,6 +143,7 @@ for(y in 1:length(years)){
                 print(paste(length(raster_year_masked), "scenes"))
                 median_raster_year_masked <- func_mean_raster(raster_year_masked_clean)
                 # median_raster_year_masked <- func_median_raster(raster_year_masked_clean)
+
                 plot(median_raster_year_masked)
 
                 # save
