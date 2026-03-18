@@ -974,7 +974,7 @@ func_RF_ranger <- function(dat_interpolate, RSdata_valid, model_name, output_MOD
 
 func_RF_ranger_class <- function(dat_interpolate, RSdata_valid, model_name, output_MODEL,
                                   output_RF, raster_outRF_pred,
-                                  rcl, unite, labs){
+                                  rcl, unite, labs, lessVAR){
 
 
     # Projektion & Resampling
@@ -1018,6 +1018,9 @@ func_RF_ranger_class <- function(dat_interpolate, RSdata_valid, model_name, outp
         } else {
                 rf_df_sample <- rf_df_sample[, !colnames(rf_df_sample) %in% c("CoastalAerosol", "SWIR2", "Blue" , "Green" , "Red", "NIR" ,"SWIR1")]
         }
+    if(lessVAR){
+        rf_df_sample <- rf_df_sample[, !colnames(rf_df_sample) %in% c("sediment", "TSM_laili")]
+    }
     rf_df_sample <- na.omit(rf_df_sample)
     # # normieren
     # # Alle Spalten außer evtl. Zielvariable normalisieren
