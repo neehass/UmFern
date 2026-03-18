@@ -925,6 +925,7 @@ func_RF_ranger <- function(dat_interpolate, RSdata_valid, model_name, output_MOD
 
         # predict 
         pred <- predict(RSdata_valid, rf_model_WPI_RF)
+        pred <- crop(pred, WPI_interpolate_pj$var1.pred)
         pred_WPI <- mask(pred, WPI_interpolate_pj$var1.pred)#   
         names(pred_WPI) <- names(pred)
         writeRaster(pred_WPI, file.path(raster_outRF_pred, paste0(model_name,"_pred.tif")), overwrite = TRUE)
@@ -935,7 +936,7 @@ func_RF_ranger <- function(dat_interpolate, RSdata_valid, model_name, output_MOD
             WPI_interpolate_pj[[1]] <- WPI_interpolate_pj[[1]] /1000
         }
         png(file.path(output_RF,  paste0(model_name, "_interpolate_RF_pred.png")), 
-            height = 300, width = 300)
+            height = 300, width = 350)
         plot(pred_WPI, plg = list(title = unite), breaks = brks) # main = model_name
         plot(gulf_shp_pj, add = TRUE)
         points(sampleloc_points_pj, col = "red")
@@ -1046,6 +1047,7 @@ func_RF_ranger_class <- function(dat_interpolate, RSdata_valid, model_name, outp
     # prediction 
     print("make prediction")
     pred <- predict(RSdata_valid, rf_model)
+    pred <- crop(pred, WPI_interpolate_pj$var1.pred)
     pred_WPI <- mask(pred, WPI_interpolate_pj$var1.pred)# 
     writeRaster(pred_WPI, file.path(raster_outRF_pred, paste0(model_name,"_pred.tif")), overwrite = TRUE)
 
@@ -1059,7 +1061,7 @@ func_RF_ranger_class <- function(dat_interpolate, RSdata_valid, model_name, outp
     levels(pred_WPI) <- data.frame(ID=1:5, label=labs)
 
     png(file.path(output_RF,  paste0(model_name, "_interpolate_RF_pred.png")), 
-        height = 300, width = 300)
+        height = 300, width = 350)
     plot(pred_WPI )#, main = model_name)
     plot(gulf_shp_pj, add = TRUE)
     points(sampleloc_points_pj, col = "red")
