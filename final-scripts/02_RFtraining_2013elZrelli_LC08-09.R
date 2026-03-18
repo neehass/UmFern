@@ -781,9 +781,9 @@ rcl <- matrix(c(-Inf, 1, 1,
   5, Inf, 5), ncol = 3, byrow = TRUE)
 
 labs <- c("Not affected", "Slightly affected","Moderately affected","Strongly affected","Seriously affected")
-RF_class_WPI <- func_RF_ranger_class(WPI_interpolate, RSdata_valid, "WPI_RF_class", output_MODEL,
+RF_class_WPI <- func_RF_ranger_class(WPI_interpolate, RSdata_valid, "WPI_RF_class_lessVAR", output_MODEL,
                                   output_RF, raster_outRF_pred,
-                                  rcl, unite = "WPI", labs)   
+                                  rcl, unite = "WPI", labs, lessVAR = TRUE)   
 
 # Super Vector Maschine WPI -----------
 rcl <- matrix(c(-Inf, 1, 1,

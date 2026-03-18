@@ -17,7 +17,7 @@ dir.create(output, recursive = TRUE)
 
 data_dir_cloudmask <- "./landsat-SEPTEMBER_cloudmask"
 data_crop_dir <- "./final_landsat-SEPTEMBER_PIF_LC08-09"
-data_crop_dir <- "./2final_landsat-SEPTEMBER_PIF_LC08-09"
+# data_crop_dir <- "./2final_landsat-SEPTEMBER_PIF_LC08-09"
 
 folder_MODELS <- file.path("./final_RF_NORM_models_LC08-09")
 
@@ -59,6 +59,8 @@ sampleloc_extent4_land <- erase(sampleloc_extent4_land, gulf_shp)
 # ---------------------------------------------------------
 rf_model_WPI_RF <- readRDS(file.path(folder_MODELS, paste0("rf_model_WPI_RF.rds")))
 rf_model_WPI_RF_CLASS <- readRDS(file.path(folder_MODELS, paste0("rf_model_WPI_RF_class.rds")))
+
+rf_model_WPI_RF_CLASS_lessVAR <- readRDS(file.path(folder_MODELS, paste0("rf_model_WPI_RF_class_lessVAR.rds")))
 
 rf_model_F_RF <- readRDS(file.path(folder_MODELS, paste0("rf_model_F_RF.rds")))
 rf_model_F_RF_CLASS <- readRDS(file.path(folder_MODELS, paste0("rf_model_F_RF_class.rds")))
@@ -117,6 +119,29 @@ name_RF <- "WPI_class_NORM"
 folder_PRED_WPI_class <- file.path(folder_PRED, name_RF)
 dir.create(folder_PRED_WPI_class)
 
+rf_model_WPI_RF_CLASS_lessVAR$forest$independent.variable.names # variable names
+
+all_pred_WPI_Class_lessVAR <- func_pred_RF(raster_years, rf_model_WPI_RF_CLASS_lessVAR, 
+                    sampleloc_extent4_land, outpur_dir = folder_PRED_WPI_class)
+# all_pred_WPI_Class_lessVAR <- lapply(list.files(folder_PRED_WPI_class, pattern = ".tif$"), function(x){rast(file.path(folder_PRED_WPI_class, x))})
+
+labs <- c("Not affected", "Slightly affected","Moderately affected","Strongly affected","Seriously affected")
+png(file.path(output, paste0(name_RF, "_interpolate_RF_pred_lessVAR.png")), height = 800, width = 800)
+par(mfrow=c(3,4))
+for(y in 1:length(unique_years)){
+    # max_abs <- max(abs(global(baseline_diff[[y]], "max", na.rm=TRUE)),
+    #             abs(global(baseline_diff[[y]], "min", na.rm=TRUE)))
+       levels(all_pred_WPI_Class_lessVAR[[y]]) <- data.frame(ID=1:5, label=labs)
+  plot(all_pred_WPI_Class_lessVAR[[y]],
+       main = paste("WPI", unique_years[y]), )
+}
+dev.off()
+
+# less Variables Klassifikation and NORMIERT ------------------------
+name_RF <- "WPI_class_NORM_lessVAR"
+folder_PRED_WPI_class <- file.path(folder_PRED, name_RF)
+dir.create(folder_PRED_WPI_class)
+
 # rf_model_WPI_RF_CLASS$forest$independent.variable.names # variable names
 
 all_pred_WPI_Class <- func_pred_RF(raster_years, rf_model_WPI_RF_CLASS, sampleloc_extent4_land, outpur_dir = folder_PRED_WPI_class)
@@ -133,7 +158,6 @@ for(y in 1:length(unique_years)){
        main = paste("WPI", unique_years[y]), )
 }
 dev.off()
-
 # ---------------------------------------------------------
 # make predictions with F model ------------------
 # ---------------------------------------------------------
