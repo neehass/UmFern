@@ -59,17 +59,23 @@ folder_PRED_WPI_class <- file.path(folder_PRED, name_RF)
 all_pred_WPI_Class <- lapply(list.files(folder_PRED_WPI_class, pattern = ".tif$"), function(x){rast(file.path(folder_PRED_WPI_class, x))})
 
 labs <- c("Not affected", "Slightly affected","Moderately affected","Strongly affected","Seriously affected")
-png(file.path(output, paste0(name_RF, "_interpolate_RF_pred.png")), height = 800, width = 800)
-par(mfrow=c(3,4))
+png(file.path(output, paste0(name_RF, "_interpolate_RF_pred.png")), height = 500, width = 800)
+par(mfrow=c(2,5))
 for(y in 1:length(unique_years)){
     # max_abs <- max(abs(global(baseline_diff[[y]], "max", na.rm=TRUE)),
     #             abs(global(baseline_diff[[y]], "min", na.rm=TRUE)))
        levels(all_pred_WPI_Class[[y]]) <- data.frame(ID=1:5, label=labs)
   plot(all_pred_WPI_Class[[y]],
-       main = paste("WPI", unique_years[y]), )
+       main = paste(unique_years[y]), legend = FALSE)
 }
 dev.off()
 
+png(file.path(output, paste0(name_RF, "_interpolate_RF_pred_LEGEND.png")), height = 200, width = 300)
+levels(all_pred_WPI_Class[[1]]) <- data.frame(ID=1:5, label=labs)
+plot(all_pred_WPI_Class[[1]],
+       main = paste("WPI", unique_years[y]), legend = TRUE)
+
+dev.off()
 # -----------------------------------------------------------
 # CV REGRESSION ------------------
 # ---------------------------------------------------------
@@ -248,6 +254,7 @@ fixed_colors <- c( # chat gpt
 )
 dir.create(file.path(output, "diffplots_propTab"))
 for(i in 1:(length(all_pred_WPI_Class)-1)){
+  i <- 1
   year1 <- all_pred_WPI_Class[[i+1]]
   compareGeom(baseline2013_class, year1)
 
@@ -259,9 +266,19 @@ for(i in 1:(length(all_pred_WPI_Class)-1)){
 
   df$change <- df$baseline != df$pred
   df_change <- df[df$change, ]
-  df_change <- na.omit(df_change)
+  # df_change <- na.omit(df_change)
   df_change$transition <- paste(df_change$baseline, "→", df_change$pred)
+  df_change$transition <- as.factor(df_change$transition)
+  df_change$transition_num <- as.numeric(df_change$transition)
   unique(df_change$transition)
+  names(df_change)
+
+  # rast_change <- rast(df_change[, c("x","y","transition_num")], type = "xyz")
+  # cats_df <- data.frame(
+  # ID = 1:length(levels(df_change$transition)),   # numeric codes
+  # category = levels(df_change$transition))       # factor labels
+  # levels(rast_change) <- levels(df_change$transition)
+  # plot(rast_change, col = rainbow(length(levels(df_change$transition))))
 
   # library(RColorBrewer)
   # par(mar=c(3,4,2,2))

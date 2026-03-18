@@ -99,7 +99,7 @@ plot(sampleloc_extent4_land_pj, add = TRUE)
 
 sampleloc_points_pj <- project(sampleLoc_points, crs(valid_SEP_Extent))
 
-buffer <- buffer(sampleloc_points_pj, width = 200) # meter
+buffer <- terra::buffer(sampleloc_points_pj, width = 200) # meter
 ## crop sample loc extent -----
 # valid_SEP_points <- mask(valid_SEP_Extent, buffer)
 # valid_SEP_points <- crop(valid_SEP_points, valid_SEP_Extent)
@@ -214,6 +214,8 @@ df_corr <- values_long %>%
   left_join(waterPolIndex[, c("Longitude", "WPi")],
             by = "Longitude")
 # WPI vs TSM
+cor_Blue  <- cor(df_corr$WPi, df_corr$Blue, use = "complete.obs")
+R2_Blue   <- cor_Blue^2
 cor_Green  <- cor(df_corr$WPi, df_corr$Green, use = "complete.obs")
 R2_Green   <- cor_Green^2
 cor_Red  <- cor(df_corr$WPi, df_corr$Red, use = "complete.obs")
@@ -226,6 +228,8 @@ cor_Sw2  <- cor(df_corr$WPi, df_corr$SWIR2, use = "complete.obs")
 R2_SW2  <- cor_Sw2^2
 
 label_text <- paste0(
+    "<span style='color:blue;'>Blue: R = ", round(cor_Blue,2),
+  " | R² = ", round(R2_Blue,2), "</span><br>",
   "<span style='color:darkgreen;'>Green: R = ", round(cor_Green,2),
   " | R² = ", round(R2_Green,2), "</span><br>",
   "<span style='color:red;'>Red: R = ", round(cor_Red,2),
@@ -737,6 +741,7 @@ write.csv(cor_heay_INDEX, file.path(output, "corr_heavymeatal_INDEX.csv"), row.n
 library(caret)
 library(randomForest)
 library(ranger)
+library(kernlab) # SVM
 
 output_RF <- file.path(output, "final_RF_NORM_interpolate_LC08-09")
 dir.create(output_RF)
@@ -780,6 +785,19 @@ RF_class_WPI <- func_RF_ranger_class(WPI_interpolate, RSdata_valid, "WPI_RF_clas
                                   output_RF, raster_outRF_pred,
                                   rcl, unite = "WPI", labs)   
 
+# Super Vector Maschine WPI -----------
+rcl <- matrix(c(-Inf, 1, 1,
+  1, 2, 2,
+  2, 3, 3,
+  3, 5, 4,
+  5, Inf, 5), ncol = 3, byrow = TRUE)
+
+labs <- c("Not affected", "Slightly affected","Moderately affected","Strongly affected","Seriously affected")
+SVM_WPI <- func_SVM(WPI_interpolate, RSdata_valid, "WPI_SVM_class", output_MODEL,
+                                  output_RF, raster_outRF_pred,
+                                  rcl, unite = "WPI", labs)   
+
+# wie predictions???
 # -------------------------------------------
 # RandomForest für Florine F ----
 F_interpolate_pj <- project(F_interpolate,  crs(valid_SEP_Extent))

@@ -1100,6 +1100,114 @@ func_RF_ranger_class <- function(dat_interpolate, RSdata_valid, model_name, outp
     return(list(RF = rf_model, pred = pred_WPI))
 }
 
+# Super Vector Maschine 
+library(kernlab)
+library(caret)
+library(doParallel)
+library(raster)
+
+func_SVM <- function(dat_interpolate, RSdata_valid, model_name, output_MODEL,
+                                  output_RF, raster_outRF_pred,
+                                  rcl, unite, labs){
+
+    start <- Sys.time()
+    # Projektion & Resampling
+    WPI_interpolate_pj <- project(dat_interpolate, crs(RSdata_valid))
+    WPI_interpolate_pj <- resample(WPI_interpolate_pj, RSdata_valid)
+    # RSdata_valid <- resample(RSdata_valid, WPI_interpolate_pj)
+
+    # Feature Engineering
+    RSdata_valid$TSM_laili <- app(RSdata_valid[[c("Blue","Red")]],
+                                fun = function(x) func_TMS_Laili(x[,1], x[,2]))
+
+    RSdata_valid$logChla <- app(RSdata_valid[[c("Red","Green")]],
+                                fun = function(x) func_log_Chl(x[,1], x[,2]))
+
+
+    RSdata_valid$NDWI <- app(RSdata_valid[[c("Green","NIR")]],fun = function(x) { func_NDWI(x[,1] , x[,2])})
+    RSdata_valid$TI <- app(RSdata_valid[[c("NIR","Green")]],fun = function(x) { func_TI(x[,1] , x[,2])})
+    RSdata_valid$sediment <- app(RSdata_valid[[c("Red","Blue")]],fun = function(x) { func_sedi(x[,1] , x[,2])})
+    RSdata_valid$NDSSI <- app(RSdata_valid[[c("Red","NIR")]],fun = function(x) { func_NDSSI(x[,1] , x[,2])})
+
+    RSdata_valid$SWIR1_NIR <- app(RSdata_valid[[c("SWIR1","NIR")]],fun = function(x) {  x[,1] / x[,2] })
+    # RSdata_valid$B_G <- app(RSdata_valid[[c("Blue","Green")]],fun = function(x) {  x[,1] / x[,2] })
+    # RSdata_valid$R_NIR_SWIR1 <- app(RSdata_valid[[c("Red","NIR", "SWIR1")]],fun = function(x) {  (x[,1] + x[,2]) /  x[,3]})
+
+
+    # WPI klassifizieren
+    WPI_interpolate_pj$WPI_class <- classify(WPI_interpolate_pj$var1.pred, rcl)
+    WPI_interpolate_pj$WPI_class <- as.factor(WPI_interpolate_pj$WPI_class)
+
+    all_RF_data <- c(RSdata_valid, WPI_interpolate_pj$WPI_class)
+
+    # Sampling
+    rf_df_sample <- spatSample(all_RF_data, size = 50000,  xy = TRUE, method = "random", as.df = TRUE, na.rm = TRUE)
+    # head(rf_df_sample)
+    
+    rf_df_sample$WPI_class <- as.factor(rf_df_sample$WPI_class)
+    rf_df_sample <- na.omit(rf_df_sample) 
+   test_rf_df_sample <- rf_df_sample[,!colnames(rf_df_sample) %in% c("WPI_class", "NDWI","CoastalAerosol", "SWIR2", "Blue" , "Green" , "Red", "NIR" ,"SWIR1")]
+    if(unique(sapply(strsplit(model_name, "_"), `[`, 1)) == "WPI"){ # einheit von ym/l zu mg/l
+            # ohne NDWI
+            rf_df_sample <- rf_df_sample[, !colnames(rf_df_sample) %in% c("x", "y","NDWI","CoastalAerosol", "SWIR2", "Blue" , "Green" , "Red", "NIR" ,"SWIR1")]
+
+        } else {
+                rf_df_sample <- rf_df_sample[, !colnames(rf_df_sample) %in% c("x", "y","CoastalAerosol", "SWIR2", "Blue" , "Green" , "Red", "NIR" ,"SWIR1")]
+        }
+   
+
+  # parallel
+    cl <- makeCluster(parallel::detectCores()-1)
+    registerDoParallel(cl)
+
+    ctrl <- trainControl(method = "cv", number = 5)
+
+    svm <- train( y = rf_df_sample$WPI_class,
+        x = rf_df_sample[, !colnames(rf_df_sample) %in% "WPI_class"],
+        method = "svmRadial",
+        trControl = ctrl,
+        preProcess = c("center", "scale"),
+        tuneLength = 2)
+
+    stopCluster(cl)
+    registerDoSEQ()
+    print("save model")
+    saveRDS(svm, file = file.path(output_MODEL, paste0("rf_model_", model_name, ".rds")))
+    end <- Sys.time()
+    print(start-end)
+
+    # prediction -----
+    print("make prediction")
+    head(test_rf_df_sample)
+    sample_points <- vect(test_rf_df_sample, geom = c("x","y"), crs = crs(RSdata_valid))
+
+    pred <- predict(SVM_WPI, newdata = test_rf_df_sample)
+     pred$x <-  test_rf_df_sample$x
+     pred$y <- test_rf_df_sample$y
+    levels(pred) <- data.frame(ID=1:5, label=labs)
+
+    terra::plot(pred, col = rainbow(5))
+
+    # breaks definded 
+    if(unique(sapply(strsplit(model_name, "_"), `[`, 1)) == "P"){ # einheit von ym/l zu mg/l
+        print("P")
+        pred_WPI <- pred_WPI/1000
+        WPI_interpolate_pj[[1]] <- WPI_interpolate_pj[[1]] /1000
+    }
+
+    levels(pred_WPI) <- data.frame(ID=1:5, label=labs)
+
+    png(file.path(output_RF,  paste0(model_name, "_interpolate_RF_pred.png")), 
+        height = 300, width = 350)
+    plot(pred_WPI )#, main = model_name)
+    plot(gulf_shp_pj, add = TRUE)
+    points(sampleloc_points_pj, col = "red")
+    points(indloc_pj, col = "black", pch = 15, cex = 1)
+    dev.off()
+
+    return(svm)
+}
+
 func_pred_RF <- function(raster, model, sampleloc_extent, outpur_dir){
 
   tot_start <- Sys.time()
