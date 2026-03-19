@@ -17,7 +17,7 @@ library(ggtext)
 
 getwd()
 setwd("./Phosphate")
-source('./R-scripts/hel-func.R', chdir = TRUE)
+source('./R-scripts/final-scripts/hel-func.R', chdir = TRUE)
 
 output <- "./R-scripts/output/00_2013elZrelli_dataprep_interpolate"
 dir.create(output, recursive = TRUE)
@@ -111,10 +111,22 @@ points(indloc_pj, col = "black", pch = 15, cex = 1)
 dev.off()
 
 wpi_interpolate <- func_interpoltate(waterPolIndex, VAR = "WPi", maske = sampleloc_extent_interpol, name = "WPi_interpolate", data_dir_valid_masekd)
-brks <- c( 0,1,2,3,4, 6, 10, 15, 30)#seq(0.3, 20,  by = 4)
+gulf_shp_pj <- project(gulf_shp, wpi_interpolate)
+sampleLoc_points_pj <- project(sampleLoc_points, wpi_interpolate)
+indloc_pj <- project(vect(matrix(ind_loc, ncol=2), crs="EPSG:4326"), wpi_interpolate)
 
-png(file.path(output,  paste0("wpi_interpolate.png")), height = 200, width = 200)
-plot(wpi_interpolate$var1.pred, plg = list(title = "WPI"), breaks = brks)#, main = "WPI")
+brks <- c( 0,1,2,3,4, 6, 10, 15, 30)#seq(0.3, 20,  by = 4)
+labs <- c("Not affected", "Slightly affected","Moderately affected","Strongly affected","Seriously affected")
+rcl <- matrix(c(-Inf, 1, 1,
+  1, 2, 2,
+  2, 3, 3,
+  3, 5, 4,
+  5, Inf, 5), ncol = 3, byrow = TRUE)
+wpi_interpolate$var1.pred <- classify(wpi_interpolate$var1.pred, rcl)
+levels(wpi_interpolate$var1.pred) <- data.frame(ID=1:5, label=labs)
+
+png(file.path(output,  paste0("wpi_interpolate.png")), height = 200, width = 300)
+plot(wpi_interpolate$var1.pred, plg = list(title = "WPI"))#, breaks = brks)#, main = "WPI")
 plot(gulf_shp_pj, add = TRUE)
 points(sampleLoc_points_pj, col = "red")
 points(indloc_pj, col = "black", pch = 15, cex = 1)
