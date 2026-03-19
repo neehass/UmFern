@@ -371,7 +371,7 @@ for(y in 1:length(comp_class)){
 dev.off()
 
 png(file.path(output, paste0("diffWPI_CLASS", "LEGEND.png")), height = 500, width = 800)
-terra::plot(comp_class[[1]], col = cols,  plg=list( cex=2))
+terra::plot(comp_class[[2]], col = cols,  plg=list( cex=2))
 dev.off()
 
 # -----------------------------------------------------------
