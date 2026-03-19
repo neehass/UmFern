@@ -76,6 +76,24 @@ plot(all_pred_WPI_Class[[1]],
        main = paste("WPI", unique_years[y]), legend = TRUE)
 
 dev.off()
+
+# less Variables Klassifikation and NORMIERT ------------------------
+name_RF <- "WPI_class_NORM_lessVAR"
+folder_PRED_WPI_class_lessVARS <- file.path(folder_PRED, name_RF)
+
+all_pred_WPI_Class_lessVARS <- lapply(list.files(folder_PRED_WPI_class_lessVARS, pattern = ".tif$"), function(x){rast(file.path(folder_PRED_WPI_class, x))})
+
+labs <- c("Not affected", "Slightly affected","Moderately affected","Strongly affected","Seriously affected")
+png(file.path(output, paste0(name_RF, "_interpolate_RF_pred.png")), height = 500, width = 800)
+par(mfrow=c(2,5))
+for(y in 1:length(unique_years)){
+    # max_abs <- max(abs(global(baseline_diff[[y]], "max", na.rm=TRUE)),
+    #             abs(global(baseline_diff[[y]], "min", na.rm=TRUE)))
+       levels(all_pred_WPI_Class_lessVARS[[y]]) <- data.frame(ID=1:5, label=labs)
+  plot(all_pred_WPI_Class_lessVARS[[y]],
+       main = paste(unique_years[y]), legend = FALSE)
+}
+dev.off()
 # -----------------------------------------------------------
 # CV REGRESSION ------------------
 # ---------------------------------------------------------

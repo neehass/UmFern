@@ -78,6 +78,7 @@ length(unique_years) # 10 Scenen
 raster_years <- lapply(files_raster, function(x){rast(file.path(data_crop_dir, x))})
 names(raster_years) <- paste0("year_",unique_years)
 raster_years <- lapply(raster_years, function(x) {x[[ !names(x) %in% c("CoastalAerosol", "SWIR2") ]]})
+length(raster_years)
 
 png(file.path(output, paste0("RAW-Blue", ".png")), height = 800, width = 800)
 par(mfrow=c(5,2))
@@ -119,33 +120,11 @@ name_RF <- "WPI_class_NORM"
 folder_PRED_WPI_class <- file.path(folder_PRED, name_RF)
 dir.create(folder_PRED_WPI_class)
 
-rf_model_WPI_RF_CLASS_lessVAR$forest$independent.variable.names # variable names
-
-all_pred_WPI_Class_lessVAR <- func_pred_RF(raster_years, rf_model_WPI_RF_CLASS_lessVAR, 
-                    sampleloc_extent4_land, outpur_dir = folder_PRED_WPI_class)
-# all_pred_WPI_Class_lessVAR <- lapply(list.files(folder_PRED_WPI_class, pattern = ".tif$"), function(x){rast(file.path(folder_PRED_WPI_class, x))})
-
-labs <- c("Not affected", "Slightly affected","Moderately affected","Strongly affected","Seriously affected")
-png(file.path(output, paste0(name_RF, "_interpolate_RF_pred_lessVAR.png")), height = 800, width = 800)
-par(mfrow=c(3,4))
-for(y in 1:length(unique_years)){
-    # max_abs <- max(abs(global(baseline_diff[[y]], "max", na.rm=TRUE)),
-    #             abs(global(baseline_diff[[y]], "min", na.rm=TRUE)))
-       levels(all_pred_WPI_Class_lessVAR[[y]]) <- data.frame(ID=1:5, label=labs)
-  plot(all_pred_WPI_Class_lessVAR[[y]],
-       main = paste("WPI", unique_years[y]), )
-}
-dev.off()
-
-# less Variables Klassifikation and NORMIERT ------------------------
-name_RF <- "WPI_class_NORM_lessVAR"
-folder_PRED_WPI_class <- file.path(folder_PRED, name_RF)
-dir.create(folder_PRED_WPI_class)
-
 # rf_model_WPI_RF_CLASS$forest$independent.variable.names # variable names
 
-all_pred_WPI_Class <- func_pred_RF(raster_years, rf_model_WPI_RF_CLASS, sampleloc_extent4_land, outpur_dir = folder_PRED_WPI_class)
-all_pred_WPI_Class <- lapply(list.files(folder_PRED_WPI_class, pattern = ".tif$"), function(x){rast(file.path(folder_PRED_WPI_class, x))})
+all_pred_WPI_Class <- func_pred_RF(raster_years, rf_model_WPI_RF_CLASS, 
+                    sampleloc_extent4_land, outpur_dir = folder_PRED_WPI_class)
+# all_pred_WPI_Class_lessVAR <- lapply(list.files(folder_PRED_WPI_class, pattern = ".tif$"), function(x){rast(file.path(folder_PRED_WPI_class, x))})
 
 labs <- c("Not affected", "Slightly affected","Moderately affected","Strongly affected","Seriously affected")
 png(file.path(output, paste0(name_RF, "_interpolate_RF_pred.png")), height = 800, width = 800)
@@ -155,6 +134,29 @@ for(y in 1:length(unique_years)){
     #             abs(global(baseline_diff[[y]], "min", na.rm=TRUE)))
        levels(all_pred_WPI_Class[[y]]) <- data.frame(ID=1:5, label=labs)
   plot(all_pred_WPI_Class[[y]],
+       main = paste("WPI", unique_years[y]), )
+}
+dev.off()
+
+# less Variables Klassifikation and NORMIERT ------------------------
+name_RF <- "WPI_class_NORM_lessVAR"
+folder_PRED_WPI_class_lessVAR <- file.path(folder_PRED, name_RF)
+dir.create(folder_PRED_WPI_class_lessVAR)
+
+rf_model_WPI_RF_CLASS_lessVAR$forest$independent.variable.names # variable names
+names(raster_years)
+
+# all_pred_WPI_Class_lessVAR <- func_pred_RF(raster_years, rf_model_WPI_RF_CLASS_lessVAR, sampleloc_extent4_land, outpur_dir = folder_PRED_WPI_class_lessVAR)
+all_pred_WPI_Class_lessVAR <- lapply(list.files(folder_PRED_WPI_class_lessVAR, pattern = ".tif$"), function(x){rast(file.path(folder_PRED_WPI_class_lessVAR, x))})
+
+labs <- c("Not affected", "Slightly affected","Moderately affected","Strongly affected","Seriously affected")
+png(file.path(output, paste0(name_RF, "_interpolate_RF_pred.png")), height = 800, width = 800)
+par(mfrow=c(3,4))
+for(y in 1:length(unique_years)){
+    # max_abs <- max(abs(global(baseline_diff[[y]], "max", na.rm=TRUE)),
+    #             abs(global(baseline_diff[[y]], "min", na.rm=TRUE)))
+       levels(all_pred_WPI_Class_lessVAR[[y]]) <- data.frame(ID=1:5, label=labs)
+  plot(all_pred_WPI_Class_lessVAR[[y]],
        main = paste("WPI", unique_years[y]), )
 }
 dev.off()

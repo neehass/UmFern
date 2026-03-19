@@ -16,7 +16,7 @@ getwd()
 setwd("./Phosphate")
 source('./R-scripts/final-scripts/hel-func.R', chdir = TRUE)
 
-output <- "./R-scripts/output/02_2013NORM_Valid_elZrelli-outputs_LC08-09"
+output <- "./R-scripts/output/02_RFtraining_2013elZrelli_LC08-09"
 dir.create(output)
 
 data_elZrelli_shp <- "./elZrelli2018_shp"
@@ -781,11 +781,12 @@ rcl <- matrix(c(-Inf, 1, 1,
   5, Inf, 5), ncol = 3, byrow = TRUE)
 
 labs <- c("Not affected", "Slightly affected","Moderately affected","Strongly affected","Seriously affected")
-RF_class_WPI <- func_RF_ranger_class(WPI_interpolate, RSdata_valid, "WPI_RF_class_lessVAR", output_MODEL,
-                                  output_RF, raster_outRF_pred,
-                                  rcl, unite = "WPI", labs, lessVAR = TRUE)   
+RF_class_WPI <- func_RF_ranger_class(WPI_interpolate, RSdata_valid,
+                                   model_name = "WPI_RF_class_TSMChla", # WPI_RF_class_lessVAR, WPI_RF_class
+                                   output_MODEL, output_RF, raster_outRF_pred,
+                                  rcl, unite = "WPI", labs, lessVAR = "TSM_Chla")   
 
-# Super Vector Maschine WPI -----------
+# Super Vector Maschine WPI -----------------------------------------
 rcl <- matrix(c(-Inf, 1, 1,
   1, 2, 2,
   2, 3, 3,
@@ -797,7 +798,8 @@ SVM_WPI <- func_SVM(WPI_interpolate, RSdata_valid, "WPI_SVM_class", output_MODEL
                                   output_RF, raster_outRF_pred,
                                   rcl, unite = "WPI", labs)   
 
-# wie predictions???
+# wie predictions mit SVM???
+
 # -------------------------------------------
 # RandomForest für Florine F ----
 F_interpolate_pj <- project(F_interpolate,  crs(valid_SEP_Extent))

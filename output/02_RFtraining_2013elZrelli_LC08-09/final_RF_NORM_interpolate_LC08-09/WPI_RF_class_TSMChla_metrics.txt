@@ -1,0 +1,18 @@
+Model: WPI_RF_class_TSMChla
+----------------------------------
+Model type: Classification
+OOB Error Rate: 0.4368
+OOB Accuracy:   0.5632
+Number of trees: 500
+Mtry: 1
+Min node size: 1
+Splitrule: gini
+
+Confusion Matrix (OOB):
+    predicted
+true     1     2     3     4     5
+   1   723   524    90    97   364
+   2   414  5921  2469   977  1034
+   3    53  1837 11123  2909  1307
+   4    71   859  3054  7578  1168
+   5   283   814  1981  1534  2816

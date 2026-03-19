@@ -974,7 +974,7 @@ func_RF_ranger <- function(dat_interpolate, RSdata_valid, model_name, output_MOD
 
 func_RF_ranger_class <- function(dat_interpolate, RSdata_valid, model_name, output_MODEL,
                                   output_RF, raster_outRF_pred,
-                                  rcl, unite, labs, lessVAR){
+                                  rcl, unite, labs, lessVAR = FALSE){
 
 
     # Projektion & Resampling
@@ -1015,13 +1015,21 @@ func_RF_ranger_class <- function(dat_interpolate, RSdata_valid, model_name, outp
             # ohne NDWI
             rf_df_sample <- rf_df_sample[, !colnames(rf_df_sample) %in% c("NDWI","CoastalAerosol", "SWIR2", "Blue" , "Green" , "Red", "NIR" ,"SWIR1")]
 
-        } else {
+    } else {
                 rf_df_sample <- rf_df_sample[, !colnames(rf_df_sample) %in% c("CoastalAerosol", "SWIR2", "Blue" , "Green" , "Red", "NIR" ,"SWIR1")]
         }
-    if(lessVAR){
+
+    if(lessVAR == "TSM_Chla"){
+        print("only logChla and TSM_laili")
+        rf_df_sample <- rf_df_sample[, colnames(rf_df_sample) %in% c("logChla", "TSM_laili", "WPI_class")]
+    } else if (lessVAR) {
         rf_df_sample <- rf_df_sample[, !colnames(rf_df_sample) %in% c("sediment", "TSM_laili")]
     }
+
+    print(colnames(rf_df_sample))
     rf_df_sample <- na.omit(rf_df_sample)
+
+    # head(rf_df_sample)
     # # normieren
     # # Alle Spalten außer evtl. Zielvariable normalisieren
     # cols_to_scale <- setdiff(names(rf_df_sample), "WPI_class") # falls var1.pred Ziel ist
