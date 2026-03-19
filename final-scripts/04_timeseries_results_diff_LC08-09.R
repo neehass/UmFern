@@ -28,7 +28,6 @@ ind_loc <- t(data.frame(  # lon, lat
                 "Sfax" = c(10.723889, 34.702778), # Triple Super Phosphate (TSP), not DAP, since 1952
                 "Skhira" = c(10.148889, 34.3475))) # seit 2013 in betireb
 colnames(ind_loc) <- c("lon", "lat")
-
 # ---------------------------------------------------------
 # load predictions with WPI model ------------------
 # ---------------------------------------------------------
@@ -38,6 +37,7 @@ name_RF <- "WPI_NORM"
 folder_PRED_WPI <- file.path(folder_PRED, name_RF)
 
 all_pred_WPI <- lapply(list.files(folder_PRED_WPI), function(x){rast(file.path(folder_PRED_WPI, x))})
+indloc_pj <- project(vect(matrix(ind_loc, ncol=2), crs="EPSG:4326"), crs(all_pred_WPI[[1]]))
 
 brks <- c( 0,1,2,3,4, 6, 10, 15, 30)#seq(0.3, 20,  by = 4)
 png(file.path(output, paste0(name_RF, "_interpolate_RF_pred.png")), height = 800, width = 800)
@@ -47,7 +47,10 @@ for(y in 1:length(unique_years)){
     #             abs(global(baseline_diff[[y]], "min", na.rm=TRUE)))
 
   plot(all_pred_WPI[[y]],
-       main = paste("WPI", unique_years[y]),  breaks = brks)
+       main = paste("WPI", unique_years[y]),  breaks = brks, legend = FALSE
+       #, plg=list(x="bottomleft", cex=1.3)
+       )
+  points(indloc_pj, col = "black", pch = 15, cex = 1)
 }
 dev.off()
 
@@ -57,6 +60,7 @@ name_RF <- "WPI_class_NORM"
 folder_PRED_WPI_class <- file.path(folder_PRED, name_RF)
 
 all_pred_WPI_Class <- lapply(list.files(folder_PRED_WPI_class, pattern = ".tif$"), function(x){rast(file.path(folder_PRED_WPI_class, x))})
+indloc_pj <- project(vect(matrix(ind_loc, ncol=2), crs="EPSG:4326"), crs(all_pred_WPI[[1]]))
 
 labs <- c("Not affected", "Slightly affected","Moderately affected","Strongly affected","Seriously affected")
 png(file.path(output, paste0(name_RF, "_interpolate_RF_pred.png")), height = 500, width = 800)
@@ -67,6 +71,7 @@ for(y in 1:length(unique_years)){
        levels(all_pred_WPI_Class[[y]]) <- data.frame(ID=1:5, label=labs)
   plot(all_pred_WPI_Class[[y]],
        main = paste(unique_years[y]), legend = FALSE)
+    points(indloc_pj, col = "black", pch = 15, cex = 1)
 }
 dev.off()
 
@@ -81,19 +86,49 @@ dev.off()
 name_RF <- "WPI_class_NORM_lessVAR"
 folder_PRED_WPI_class_lessVARS <- file.path(folder_PRED, name_RF)
 
-all_pred_WPI_Class_lessVARS <- lapply(list.files(folder_PRED_WPI_class_lessVARS, pattern = ".tif$"), function(x){rast(file.path(folder_PRED_WPI_class, x))})
+all_pred_WPI_Class_lessVARS <- lapply(list.files(folder_PRED_WPI_class_lessVARS, pattern = ".tif$"), 
+  function(x){rast(file.path(folder_PRED_WPI_class_lessVARS, x))})
+indloc_pj <- project(vect(matrix(ind_loc, ncol=2), crs="EPSG:4326"), crs(all_pred_WPI_Class_lessVARS[[1]]))
 
 labs <- c("Not affected", "Slightly affected","Moderately affected","Strongly affected","Seriously affected")
-png(file.path(output, paste0(name_RF, "_interpolate_RF_pred.png")), height = 500, width = 800)
-par(mfrow=c(2,5))
+png(file.path(output, paste0(name_RF, "_interpolate_RF_pred.png")), height = 800, width = 800)
+par(mfrow=c(3,4))
 for(y in 1:length(unique_years)){
     # max_abs <- max(abs(global(baseline_diff[[y]], "max", na.rm=TRUE)),
     #             abs(global(baseline_diff[[y]], "min", na.rm=TRUE)))
        levels(all_pred_WPI_Class_lessVARS[[y]]) <- data.frame(ID=1:5, label=labs)
   plot(all_pred_WPI_Class_lessVARS[[y]],
-       main = paste(unique_years[y]), legend = FALSE)
+       main = paste(unique_years[y]), legend = FALSE #,
+       # plg=list(x="bottomleft", cex=1.3)
+       )
+      points(indloc_pj, col = "black", pch = 15, cex = 1)
 }
 dev.off()
+
+
+# only TSM und Chla Klassifikation and NORMIERT ------------------------
+name_RF <- "WPI_class_NORM_TSMChla"
+folder_PRED_WPI_class_TSMChla <- file.path(folder_PRED, name_RF)
+
+all_pred_WPI_Class_TSMChla <- lapply(list.files(folder_PRED_WPI_class_TSMChla, pattern = ".tif$"), 
+          function(x){rast(file.path(folder_PRED_WPI_class_TSMChla, x))})
+indloc_pj <- project(vect(matrix(ind_loc, ncol=2), crs="EPSG:4326"), 
+  crs(all_pred_WPI_Class_TSMChla[[1]]))
+
+labs <- c("Not affected", "Slightly affected","Moderately affected","Strongly affected","Seriously affected")
+png(file.path(output, paste0(name_RF, "_interpolate_RF_pred.png")), height = 500, width = 800)
+par(mfrow=c(2,5))
+for(y in 1:length(all_pred_WPI_Class_TSMChla)){
+    # max_abs <- max(abs(global(baseline_diff[[y]], "max", na.rm=TRUE)),
+    #             abs(global(baseline_diff[[y]], "min", na.rm=TRUE)))
+       levels(all_pred_WPI_Class_TSMChla[[y]]) <- data.frame(ID=1:5, label=labs)
+  plot(all_pred_WPI_Class_TSMChla[[y]],
+       main = paste(unique_years[y]), legend = FALSE)
+  points(indloc_pj, col = "black", pch = 15, cex = 1)
+}
+dev.off()
+
+
 # -----------------------------------------------------------
 # CV REGRESSION ------------------
 # ---------------------------------------------------------
@@ -236,121 +271,246 @@ ggsave(file.path(output, "diffPredciton_baseline2013.png"), p_diff_reg,
 # baseline 2013 difference PREDICTIONS Klassifikation  ------------------
 # ---------------------------------------------------------
 baseline2013_class <- all_pred_WPI_Class[[1]]
-
-ind_loc <- data.frame(
-   name = c("Gabes", "Skhira","Sfax"),
-  lon = c(10.09544, 10.14889, 10.72389),
-  lat = c(33.91644, 34.34750, 34.70278)
-)
-ind_sf <- st_as_sf(ind_loc, coords = c("lon","lat"), crs = 4326)  # WGS84
-ind_sf_proj <- st_transform(ind_sf, crs = st_crs(baseline2013_class)$wkt)
-df_indloc <- cbind(ind_sf_proj, st_coordinates(ind_sf_proj))
+baseline2013_class <- as.factor(baseline2013_class)
 
 # comaprison 
-p_comp_class <- list()
-fixed_colors <- c( # chat gpt
-  "1 → 2" = "#fee5d9",
-  "1 → 3" = "#fcae91",
-  "1 → 4" = "#fb6a4a",
-  "1 → 5" = "#de2d26",
-  "2 → 1" = "#edf8fb",
-  "2 → 3" = "#b2e2e2",
-  "2 → 4" = "#66c2a4",
-  "2 → 5" = "#238b45",
-  "3 → 1" = "#f2f0f7",
-  "3 → 2" = "#cbc9e2",
-  "3 → 4" = "#9e9ac8",
-  "3 → 5" = "#6a51a3",
-  "4 → 1" = "#ffffcc",
-  "4 → 2" = "#c2e699",
-  "4 → 3" = "#78c679",
-  "4 → 5" = "#238443",
-  "5 → 1" = "#fef0d9",
-  "5 → 2" = "#fdcc8a",
-  "5 → 3" = "#fc8d59",
-  "5 → 4" = "#d7301f"
-)
-dir.create(file.path(output, "diffplots_propTab"))
+comp_class <- list()
+dir.create(file.path(output, "diffplots_propTab_Class"))
 for(i in 1:(length(all_pred_WPI_Class)-1)){
-  i <- 1
-  year1 <- all_pred_WPI_Class[[i+1]]
-  compareGeom(baseline2013_class, year1)
+  year1_org <- all_pred_WPI_Class[[i+1]]
+  year1_org <- as.factor(year1_org)
+  year1 <- year1_org
+  names(year1) <- "pred"
+  year1$baseline <- values(baseline2013_class)
+  year1$change <- year1$baseline != year1$pred
+  year1_change <- mask(year1, year1$change, maskvalues = FALSE)
+  trans_vec <- paste(values(year1_change$baseline), "→", values(year1_change$pred))
+  valid <- (!is.na(trans_vec)) & (trans_vec != "NaN → NaN") & (trans_vec != "NA → NA")
+  year1_change$transition <- NA
+  year1_change$transition[valid] <- as.factor(trans_vec[valid])
+  cats_df <- data.frame(
+  ID = 1:length(levels(factor(trans_vec[valid]))),
+  category = levels(factor(trans_vec[valid]))
+  )
 
-  df <- as.data.frame(year1, xy = TRUE)  # year1 Raster
-  df <- df[!is.na(values(baseline2013_class)) & !is.na(values(year1)), ]
+  levels(year1_change$transition) <- cats_df
+
+  finaltransition <- year1_change$transition
+
+  comp_class[[i]] <- finaltransition
+
+  # Prob tabelle pro Klasse
+   df <- as.data.frame(year1_org, xy = TRUE)  # year1 Raster
+  df <- df[!is.na(values(baseline2013_class)) & !is.na(values(year1_org)), ]
   names(df)[3] <- "pred"
   df$baseline <- values(baseline2013_class)[!is.na(values(baseline2013_class))]
   df <- df[complete.cases(df), ]
 
-  df$change <- df$baseline != df$pred
-  df_change <- df[df$change, ]
-  # df_change <- na.omit(df_change)
-  df_change$transition <- paste(df_change$baseline, "→", df_change$pred)
-  df_change$transition <- as.factor(df_change$transition)
-  df_change$transition_num <- as.numeric(df_change$transition)
-  unique(df_change$transition)
-  names(df_change)
-
-  # rast_change <- rast(df_change[, c("x","y","transition_num")], type = "xyz")
-  # cats_df <- data.frame(
-  # ID = 1:length(levels(df_change$transition)),   # numeric codes
-  # category = levels(df_change$transition))       # factor labels
-  # levels(rast_change) <- levels(df_change$transition)
-  # plot(rast_change, col = rainbow(length(levels(df_change$transition))))
-
-  # library(RColorBrewer)
-  # par(mar=c(3,4,2,2))
-  # display.brewer.all()
-
-  # pal1 <- RColorBrewer::brewer.pal(8, "Blues")
-  # pal2 <- RColorBrewer::brewer.pal(8, "YlGn")
-  # pal3 <- rev(RColorBrewer::brewer.pal(4, "PuRd"))
-
-  # combined <- colorRampPalette(c(pal1, pal2, pal3))(
-  #   length(unique(df_change$transition))
-  # )
-  p <- ggplot(df_change, aes(x = x, y = y)) +
-     geom_tile(aes(fill = transition, color = transition), linewidth = 1) +  # geom_raster() +
-     scale_color_manual(values = fixed_colors) +
-    scale_fill_manual(values = fixed_colors) +
-      geom_point(data = df_indloc[1,], aes(x = X, y = Y), color = "red", size = 2) +
-    coord_equal() + 
-    theme_minimal() + 
-    theme(legend.position = "bottom", axis.text.x = element_text(angle = 45, hjust = 1)) + # wie terra)
-    labs(title = unique_years[i+1], 
-        color = "Class\ntransition", x = "", y= "", fill = "Class\ntransition")
-#  p
-  ggsave(file.path(output, "diffplots", paste0(unique_years[i+1], "_diffPredciton_CLASS_baseline2013.png")), p, 
-          width = 5, height = 6, scale = 1.2) #3 , 4
-
-  p_comp_class[[i]] <- p
-
   prop_tab <- prop.table(table(df$baseline, df$pred), 1) # Kontingenztabelle (Konfusionsmatrix)
-  write.csv(prop_tab, file.path(output, "diffplots_propTab", 
+  write.csv(prop_tab, file.path(output, "diffplots_propTab_Class", 
       paste0(unique_years[i+1], "_diffPredciton_CLASS_baseline2013.csv")))
 
   if(i != (length(unique_years) -1)){
-    rm(df, df_change) # behalte letzte
+    rm(year1, year1_change, trans_vec, valid, finaltransition, cats_df) # behalte letzte
   }
   
 }
-
-
-prop.table(table(df$baseline, df$pred), 1) # Kontingenztabelle (Konfusionsmatrix)
-
-
-
-# zusammenführen -----
-xlim <- range(df_change$x)
-ylim <- range(df_change$y)
-legend <- get_legend(p_comp_class[[2]])
-legend
-plots_no_legend <- lapply(p_comp_class, function(p) 
-  p + theme(legend.position = "none") +
-      coord_cartesian(xlim = xlim, ylim = ylim)  # keine coord_equal()
+fixed_colors2 <- c( # chat gpt
+# to class 1 (oranges)
+  "5 → 1" = "#993404",
+  "4 → 1" = "#d95f0e",
+  "3 → 1" = "#fe9929",
+  "2 → 1" = "#fec44f",
+  # to class 2 (greens)
+  "5 → 2" = "#238b45",
+  "4 → 2" = "#41ab5d",
+  "3 → 2" = "#74c476",
+  "1 → 2" = "#c7e9c0",
+# to class 3 (purples)
+  "5 → 3" = "#6a51a3",
+  "4 → 3" = "#807dba",
+  "2 → 3" = "#9e9ac8",
+  "1 → 3" = "#dadaeb",
+ # to class 4 (blues)
+  "5 → 4" = "#2171b5",
+  "3 → 4" = "#4292c6",
+  "2 → 4" = "#6baed6",
+  "1 → 4" = "#c6dbef",
+  # to class 5 (magenta/pink)
+"1 → 5" = "#8e0152",
+"2 → 5" = "#c51b8a",
+"3 → 5" = "#f768a1",
+"4 → 5" = "#fde0ef"
 )
-combined <- plot_grid(plotlist = plots_no_legend, ncol = 4, align = "hv")
-final <- plot_grid(combined, legend, ncol = 1, rel_heights = c(1, 0.1))
-# final
-ggsave(file.path(output, "diffPredciton_CLASS_baseline2013.png"), final, 
-          width = 5, height = 6, scale = 1.2)
+cats <- levels(comp_class[[1]])[[1]]
+cols <- fixed_colors2[cats$category]
+
+png(file.path(output, paste0("diffWPI_CLASS", "_interpolate_RF_pred.png")), height = 500, width = 800)
+par(mfrow=c(2,5))
+for(y in 1:length(comp_class)){
+  # Row 1, first slot empty
+  if(y == 1){
+    plot.new()  # leave first slot blank
+  }
+  
+  # Row 2, first plot is class 5
+  if(y == 2){
+    plot(comp_class[[y]],
+         main = paste(unique_years[y+1]),
+         legend = FALSE,
+         col = cols)
+     points(indloc_pj, col = "black", pch = 15, cex = 1)
+  } else {
+    plot(comp_class[[y]],
+         main = paste(unique_years[y+1]),
+         legend = FALSE,
+         col = cols)
+     points(indloc_pj, col = "black", pch = 15, cex = 1)
+  }
+}
+dev.off()
+
+png(file.path(output, paste0("diffWPI_CLASS", "LEGEND.png")), height = 500, width = 800)
+terra::plot(comp_class[[1]], col = cols,  plg=list( cex=2))
+dev.off()
+
+# -----------------------------------------------------------
+# only TSM and Chla baseline 2013 difference PREDICTIONS Klassifikation  ------------------
+# ---------------------------------------------------------
+baseline2013_classTSMChla <- all_pred_WPI_Class_TSMChla[[1]]
+baseline2013_classTSMChla <- as.factor(baseline2013_classTSMChla)
+
+# comaprison 
+comp_class_TSMChla <- list()
+dir.create(file.path(output, "diffplots_propTab_TSMChla"))
+for(i in 1:(length(all_pred_WPI_Class_TSMChla)-1)){
+  year1_org <- all_pred_WPI_Class_TSMChla[[i+1]]
+  year1_org <- as.factor(year1_org)
+  year1 <- year1_org
+  names(year1) <- "pred"
+  year1$baseline <- values(baseline2013_classTSMChla)
+  year1$change <- year1$baseline != year1$pred
+  year1_change <- mask(year1, year1$change, maskvalues = FALSE)
+  trans_vec <- paste(values(year1_change$baseline), "→", values(year1_change$pred))
+  valid <- (!is.na(trans_vec)) & (trans_vec != "NaN → NaN") & (trans_vec != "NA → NA")
+  year1_change$transition <- NA
+  year1_change$transition[valid] <- as.factor(trans_vec[valid])
+  cats_df <- data.frame(
+  ID = 1:length(levels(factor(trans_vec[valid]))),
+  category = levels(factor(trans_vec[valid]))
+  )
+
+  levels(year1_change$transition) <- cats_df
+
+  finaltransition <- year1_change$transition
+
+  comp_class_TSMChla[[i]] <- finaltransition
+
+  # Prob tabelle pro Klasse
+   df <- as.data.frame(year1_org, xy = TRUE)  # year1 Raster
+  df <- df[!is.na(values(baseline2013_classTSMChla)) & !is.na(values(year1_org)), ]
+  names(df)[3] <- "pred"
+  df$baseline <- values(baseline2013_classTSMChla)[!is.na(values(baseline2013_classTSMChla))]
+  df <- df[complete.cases(df), ]
+
+  prop_tab <- prop.table(table(df$baseline, df$pred), 1) # Kontingenztabelle (Konfusionsmatrix)
+  write.csv(prop_tab, file.path(output, "diffplots_propTab_TSMChla", 
+      paste0(unique_years[i+1], "_diffPredciton_CLASS_baseline2013.csv")))
+
+  if(i != (length(unique_years) -1)){
+    rm(year1, year1_change, trans_vec, valid, finaltransition, cats_df) # behalte letzte
+  }
+  
+}
+fixed_colors <- c( # chat gpt
+# to class 1 (oranges)
+  "5 → 1" = "#993404",
+  "4 → 1" = "#d95f0e",
+  "3 → 1" = "#fe9929",
+  "2 → 1" = "#fec44f",
+  # to class 2 (greens)
+  "5 → 2" = "#238b45",
+  "4 → 2" = "#41ab5d",
+  "3 → 2" = "#74c476",
+  "1 → 2" = "#c7e9c0",
+# to class 3 (purples)
+  "5 → 3" = "#6a51a3",
+  "4 → 3" = "#807dba",
+  "2 → 3" = "#9e9ac8",
+  "1 → 3" = "#dadaeb",
+ # to class 4 (blues)
+  "5 → 4" = "#2171b5",
+  "3 → 4" = "#4292c6",
+  "2 → 4" = "#6baed6",
+  "1 → 4" = "#c6dbef",
+  # to class 5 (magenta/pink)
+"1 → 5" = "#8e0152",
+"2 → 5" = "#c51b8a",
+"3 → 5" = "#f768a1",
+"4 → 5" = "#fde0ef"
+)
+
+cats <- levels(comp_class_TSMChla[[1]])[[1]]
+cols <- fixed_colors_sorted[cats$category]
+png(file.path(output, paste0("diffWPI_CLASS_TSMChla", "_interpolate_RF_pred.png")), height = 500, width = 800)
+par(mfrow=c(2,5))
+for(y in 1:length(comp_class_TSMChla)){
+  # Row 1, first slot empty
+  if(y == 1){
+    plot.new()  # leave first slot blank
+  }
+  
+  # Row 2, first plot is class 5
+  if(y == 2){
+    plot(comp_class_TSMChla[[y]],
+         main = paste(unique_years[y+1]),
+         legend = FALSE,
+         col = cols)
+     points(indloc_pj, col = "black", pch = 15, cex = 1)
+  } else {
+    plot(comp_class_TSMChla[[y]],
+         main = paste(unique_years[y+1]),
+         legend = FALSE,
+         col = cols)
+     points(indloc_pj, col = "black", pch = 15, cex = 1)
+  }
+}
+dev.off()
+
+png(file.path(output, paste0("diffWPI_CLASS_TSMChla", "LEGEND.png")), height = 500, width = 800)
+terra::plot(comp_class_TSMChla[[1]], col = cols,  plg=list( cex=2))
+dev.off()
+
+
+
+# fixed_colors <- c( # chat gpt
+# # From class 1 (magenta/pink)
+# "1 → 2" = "#8e0152",
+# "1 → 3" = "#c51b8a",
+# "1 → 4" = "#f768a1",
+# "1 → 5" = "#fde0ef", 
+  
+#   # From class 2 (blues)
+#   "2 → 1" = "#2171b5",
+#   "2 → 3" = "#4292c6",
+#   "2 → 4" = "#6baed6",
+#   "2 → 5" = "#c6dbef",
+  
+#   # From class 3 (purples)
+#   "3 → 1" = "#6a51a3",
+#   "3 → 2" = "#807dba",
+#   "3 → 4" = "#9e9ac8",
+#   "3 → 5" = "#dadaeb",
+  
+#   # From class 4 (greens)
+#   "4 → 1" = "#238b45",
+#   "4 → 2" = "#41ab5d",
+#   "4 → 3" = "#74c476",
+#   "4 → 5" = "#c7e9c0",
+  
+#   # From class 5 (oranges)
+#   "5 → 1" = "#993404",
+#   "5 → 2" = "#d95f0e",
+#   "5 → 3" = "#fe9929",
+#   "5 → 4" = "#fec44f"
+# )

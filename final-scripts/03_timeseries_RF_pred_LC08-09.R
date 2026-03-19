@@ -61,6 +61,7 @@ rf_model_WPI_RF <- readRDS(file.path(folder_MODELS, paste0("rf_model_WPI_RF.rds"
 rf_model_WPI_RF_CLASS <- readRDS(file.path(folder_MODELS, paste0("rf_model_WPI_RF_class.rds")))
 
 rf_model_WPI_RF_CLASS_lessVAR <- readRDS(file.path(folder_MODELS, paste0("rf_model_WPI_RF_class_lessVAR.rds")))
+rf_model_WPI_RF_CLASS_onlyTSMChla <- readRDS(file.path(folder_MODELS, paste0("rf_model_WPI_RF_class_TSMChla.rds")))
 
 rf_model_F_RF <- readRDS(file.path(folder_MODELS, paste0("rf_model_F_RF.rds")))
 rf_model_F_RF_CLASS <- readRDS(file.path(folder_MODELS, paste0("rf_model_F_RF_class.rds")))
@@ -120,7 +121,7 @@ name_RF <- "WPI_class_NORM"
 folder_PRED_WPI_class <- file.path(folder_PRED, name_RF)
 dir.create(folder_PRED_WPI_class)
 
-# rf_model_WPI_RF_CLASS$forest$independent.variable.names # variable names
+rf_model_WPI_RF_CLASS$forest$independent.variable.names # variable names
 
 all_pred_WPI_Class <- func_pred_RF(raster_years, rf_model_WPI_RF_CLASS, 
                     sampleloc_extent4_land, outpur_dir = folder_PRED_WPI_class)
@@ -157,6 +158,31 @@ for(y in 1:length(unique_years)){
     #             abs(global(baseline_diff[[y]], "min", na.rm=TRUE)))
        levels(all_pred_WPI_Class_lessVAR[[y]]) <- data.frame(ID=1:5, label=labs)
   plot(all_pred_WPI_Class_lessVAR[[y]],
+       main = paste("WPI", unique_years[y]), )
+}
+dev.off()
+
+# only TSM und Chla Klassifikation and NORMIERT ------------------------
+name_RF <- "WPI_class_NORM_TSMChla"
+folder_PRED_WPI_class_TSMChla <- file.path(folder_PRED, name_RF)
+dir.create(folder_PRED_WPI_class_TSMChla)
+
+rf_model_WPI_RF_CLASS_onlyTSMChla$forest$independent.variable.names # variable names
+names(raster_years)
+
+all_pred_WPI_Class_TSMChla <- func_pred_RF(raster_years, rf_model_WPI_RF_CLASS_onlyTSMChla, sampleloc_extent4_land,
+                     outpur_dir = folder_PRED_WPI_class_TSMChla)
+# all_pred_WPI_Class_TSMChla <- lapply(list.files(folder_PRED_WPI_class_TSMChla, pattern = ".tif$"), 
+          # function(x){rast(file.path(folder_PRED_WPI_class_TSMChla, x))})
+
+labs <- c("Not affected", "Slightly affected","Moderately affected","Strongly affected","Seriously affected")
+png(file.path(output, paste0(name_RF, "_interpolate_RF_pred.png")), height = 800, width = 800)
+par(mfrow=c(3,4))
+for(y in 1:length(unique_years)){
+    # max_abs <- max(abs(global(baseline_diff[[y]], "max", na.rm=TRUE)),
+    #             abs(global(baseline_diff[[y]], "min", na.rm=TRUE)))
+       levels(all_pred_WPI_Class_TSMChla[[y]]) <- data.frame(ID=1:5, label=labs)
+  plot(all_pred_WPI_Class_TSMChla[[y]],
        main = paste("WPI", unique_years[y]), )
 }
 dev.off()
