@@ -275,6 +275,7 @@ baseline2013_class <- as.factor(baseline2013_class)
 
 # comaprison 
 comp_class <- list()
+comp_pct <- list()
 dir.create(file.path(output, "diffplots_propTab_Class"))
 for(i in 1:(length(all_pred_WPI_Class)-1)){
   year1_org <- all_pred_WPI_Class[[i+1]]
@@ -299,6 +300,15 @@ for(i in 1:(length(all_pred_WPI_Class)-1)){
 
   comp_class[[i]] <- finaltransition
 
+  # prozental transition 
+  pct_trans <- data.frame(
+  ID = 1:length(levels(factor(trans_vec[valid]))),
+  category = levels(factor(trans_vec[valid])),
+  percent = as.numeric(round(prop.table(table(values(finaltransition))) * 100, 2)))
+  print(unique_years[i+1])
+  print(pct_trans[order(pct_trans$percent, decreasing = TRUE),])
+  comp_pct[[i]] <- pct_trans
+
   # Prob tabelle pro Klasse
    df <- as.data.frame(year1_org, xy = TRUE)  # year1 Raster
   df <- df[!is.na(values(baseline2013_class)) & !is.na(values(year1_org)), ]
@@ -315,6 +325,10 @@ for(i in 1:(length(all_pred_WPI_Class)-1)){
   }
   
 }
+names(comp_pct) <- paste0("year_", unique_years[2:length(unique_years)])
+lapply(comp_pct, function(x){ sortx <- x[order(x$percent, decreasing = TRUE),]
+    sortx[sortx$percent > 10,]})
+
 fixed_colors2 <- c( # chat gpt
 # to class 1 (oranges)
   "5 → 1" = "#993404",
@@ -382,6 +396,7 @@ baseline2013_classTSMChla <- as.factor(baseline2013_classTSMChla)
 
 # comaprison 
 comp_class_TSMChla <- list()
+comp_pct_TSMChla <- list()
 dir.create(file.path(output, "diffplots_propTab_TSMChla"))
 for(i in 1:(length(all_pred_WPI_Class_TSMChla)-1)){
   year1_org <- all_pred_WPI_Class_TSMChla[[i+1]]
@@ -405,6 +420,14 @@ for(i in 1:(length(all_pred_WPI_Class_TSMChla)-1)){
   finaltransition <- year1_change$transition
 
   comp_class_TSMChla[[i]] <- finaltransition
+   # prozental transition 
+  pct_trans <- data.frame(
+  ID = 1:length(levels(factor(trans_vec[valid]))),
+  category = levels(factor(trans_vec[valid])),
+  percent = as.numeric(round(prop.table(table(values(finaltransition))) * 100, 2)))
+  print(unique_years[i+1])
+  print(pct_trans[order(pct_trans$percent, decreasing = TRUE),])
+  comp_pct_TSMChla[[i]] <- pct_trans
 
   # Prob tabelle pro Klasse
    df <- as.data.frame(year1_org, xy = TRUE)  # year1 Raster
@@ -422,6 +445,10 @@ for(i in 1:(length(all_pred_WPI_Class_TSMChla)-1)){
   }
   
 }
+names(comp_pct_TSMChla) <- paste0("year_", unique_years[2:length(unique_years)])
+lapply(comp_pct_TSMChla, function(x){ sortx <- x[order(x$percent, decreasing = TRUE),]
+    sortx[sortx$percent > 10,]})
+
 fixed_colors <- c( # chat gpt
 # to class 1 (oranges)
   "5 → 1" = "#993404",
