@@ -325,9 +325,26 @@ for(i in 1:(length(all_pred_WPI_Class)-1)){
   }
   
 }
-names(comp_pct) <- paste0("year_", unique_years[2:length(unique_years)])
-lapply(comp_pct, function(x){ sortx <- x[order(x$percent, decreasing = TRUE),]
+names(comp_pct) <- unique_years[2:length(unique_years)]
+comp_pct10 <- lapply(comp_pct, function(x){ sortx <- x[order(x$percent, decreasing = TRUE),]
     sortx[sortx$percent > 10,]})
+cat <- lapply(comp_pct, function(x){ sortx <- x[order(x$percent, decreasing = TRUE),]
+        sortx <- sortx[sortx$percent > 10,]
+        sortx$category})
+sort(table(unlist(cat)), decreasing = TRUE)
+
+sum_cat <- bind_rows(comp_pct, .id = "year") %>%
+  group_by(category) %>% filter(percent > 10) %>%
+  summarise(total_percent = sum(percent, na.rm = TRUE)) %>%
+  arrange(desc(total_percent))
+
+p <- ggplot(bind_rows(comp_pct, .id = "year"), aes(x = year, y = category, fill = percent)) +
+  geom_tile() +
+  scale_fill_gradient(low = "white", high = "red")  +
+  labs(fill = "[%]", x = "", y= "") +
+  theme_minimal() + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+ggsave(file.path(output, "heatmap_WPI_class.png"), p, height = 10, width = 8, 
+scale = 0.3)
 
 fixed_colors2 <- c( # chat gpt
 # to class 1 (oranges)
@@ -445,10 +462,27 @@ for(i in 1:(length(all_pred_WPI_Class_TSMChla)-1)){
   }
   
 }
-names(comp_pct_TSMChla) <- paste0("year_", unique_years[2:length(unique_years)])
+names(comp_pct_TSMChla) <- unique_years[2:length(unique_years)]
 lapply(comp_pct_TSMChla, function(x){ sortx <- x[order(x$percent, decreasing = TRUE),]
     sortx[sortx$percent > 10,]})
 
+cat <- lapply(comp_pct_TSMChla, function(x){ sortx <- x[order(x$percent, decreasing = TRUE),]
+        sortx <- sortx[sortx$percent > 10,]
+        sortx$category})
+sort(table(unlist(cat)), decreasing = TRUE)
+
+sum_cat <- bind_rows(comp_pct_TSMChla, .id = "year") %>%
+  group_by(category) %>% filter(percent > 10) %>%
+  summarise(total_percent = sum(percent, na.rm = TRUE)) %>%
+  arrange(desc(total_percent))
+
+p <- ggplot(bind_rows(comp_pct_TSMChla, .id = "year"), aes(x = year, y = category, fill = percent)) +
+  geom_tile() +
+   scale_fill_gradient(low = "white", high = "red")  + 
+   labs(fill = "[%]", x = "", y= "") +
+  theme_minimal() + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+ggsave(file.path(output, "heatmap_WPI_class_TSMChla.png"), p, height = 10, width = 8, 
+scale = 0.3)
 fixed_colors <- c( # chat gpt
 # to class 1 (oranges)
   "5 → 1" = "#993404",
