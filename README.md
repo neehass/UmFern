@@ -3,6 +3,7 @@
 Codes zur Abgabe, mit Landsat-daten der Generation LC08/09
 
 Ordnerstruktur:
+
 /final-scripts
 - 00 und 01 =  Daten Vorbereitung
 - 02 = Korrelation der Landsatdaten und der Referenzdaten an den Messpunkten + Random Forest Training mit Referenzdaten aus September 2013 (El Zrelli, 2018)
